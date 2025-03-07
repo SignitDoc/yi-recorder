@@ -4,9 +4,14 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 
 // FFmpeg路径
-const ffmpegPath = "C:\\ffmpeg\\bin\\ffmpeg.exe";
+const ffmpegPath = path.join(__dirname, "ffmpeg", "bin", "ffmpeg.exe");
 // 添加备用路径，以防主路径不可用
-const ffmpegPathAlt = path.join(process.resourcesPath, "ffmpeg", "ffmpeg.exe");
+const ffmpegPathAlt = path.join(
+  process.resourcesPath,
+  "ffmpeg",
+  "bin",
+  "ffmpeg.exe"
+);
 let mainWindow;
 let ffmpegProcess = null;
 let isRecording = false;
@@ -70,10 +75,13 @@ if (!fs.existsSync(recordingsDir)) {
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
-    height: 600,
+    height: 500,
     // frame: false,
     title: "易录屏",
     icon: path.join(__dirname, "assets/logo.ico"),
+    resizable: false, // 禁止调整窗口大小
+    maximizable: false, // 禁止最大化
+    fullscreenable: false, // 禁止全屏
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -86,7 +94,7 @@ function createWindow() {
 
   mainWindow.loadFile("index.html");
   // 开发时打开开发者工具
-  mainWindow.webContents.openDevTools(); // 启用开发者工具以查看错误
+  // mainWindow.webContents.openDevTools(); // 启用开发者工具以查看错误
 }
 
 app.whenReady().then(() => {
