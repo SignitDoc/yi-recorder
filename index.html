@@ -100,6 +100,41 @@
         padding: 2px 5px;
         border-radius: 3px;
       }
+
+      .action-buttons {
+        margin-top: 15px;
+      }
+
+      .save-btn {
+        background-color: #2196f3;
+        color: white;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 500px;
+        text-align: center;
+      }
+
+      .modal-buttons {
+        margin-top: 20px;
+      }
     </style>
   </head>
   <body>
@@ -119,6 +154,19 @@
       <div id="status"></div>
     </div>
 
+    <!-- 保存对话框 -->
+    <div id="saveModal" class="modal">
+      <div class="modal-content">
+        <h3>录制完成</h3>
+        <p>您的录制已完成，请选择操作：</p>
+        <div class="modal-buttons">
+          <button id="saveAsBtn" class="save-btn">选择保存位置</button>
+          <button id="closeModalBtn">使用默认位置</button>
+        </div>
+        <p id="modalStatus"></p>
+      </div>
+    </div>
+
     <script>
       const startBtn = document.getElementById("startBtn");
       const stopBtn = document.getElementById("stopBtn");
@@ -127,9 +175,14 @@
       const screenSelectionContainer = document.getElementById(
         "screenSelectionContainer"
       );
+      const saveModal = document.getElementById("saveModal");
+      const saveAsBtn = document.getElementById("saveAsBtn");
+      const closeModalBtn = document.getElementById("closeModalBtn");
+      const modalStatus = document.getElementById("modalStatus");
 
       let selectedScreen = null;
       let screens = [];
+      let currentRecordingPath = null;
 
       // 获取屏幕信息
       async function loadScreens() {
@@ -200,7 +253,8 @@
         startBtn.style.display = "none";
         stopBtn.style.display = "inline-block";
         screenSelectionContainer.style.display = "none";
-        status.textContent = "正在录制...";
+        status.textContent =
+          "正在录制...（应用已最小化，录制完成后将自动恢复）";
       });
 
       stopBtn.addEventListener("click", () => {
@@ -216,7 +270,47 @@
       });
 
       window.electronAPI.onRecordingComplete((event, outputPath) => {
-        status.textContent = `录制完成！文件保存在: ${outputPath}`;
+        currentRecordingPath = outputPath;
+
+        // 显示保存对话框
+        saveModal.style.display = "flex";
+        status.textContent = `录制完成！`;
+      });
+
+      // 处理"选择保存位置"按钮
+      saveAsBtn.addEventListener("click", async () => {
+        if (!currentRecordingPath) {
+          modalStatus.textContent = "没有可用的录制文件";
+          return;
+        }
+
+        modalStatus.textContent = "正在处理...";
+
+        try {
+          const result = await window.electronAPI.saveRecordingAs(
+            currentRecordingPath
+          );
+
+          if (result.success) {
+            modalStatus.textContent = `文件已保存到: ${result.path}`;
+            setTimeout(() => {
+              saveModal.style.display = "none";
+              modalStatus.textContent = "";
+            }, 3000);
+          } else if (result.canceled) {
+            modalStatus.textContent = "已取消保存";
+          } else {
+            modalStatus.textContent = `保存失败: ${result.error}`;
+          }
+        } catch (error) {
+          modalStatus.textContent = `发生错误: ${error}`;
+        }
+      });
+
+      // 处理"使用默认位置"按钮
+      closeModalBtn.addEventListener("click", () => {
+        saveModal.style.display = "none";
+        status.textContent = `录制完成！文件保存在: ${currentRecordingPath}`;
       });
 
       window.electronAPI.onRecordingError((event, error) => {

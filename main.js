@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, screen, dialog } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
 const fs = require("fs");
@@ -155,6 +155,11 @@ ipcMain.on("start-recording", (event, screenInfo) => {
     return;
   }
 
+  // 最小化窗口
+  if (mainWindow) {
+    mainWindow.minimize();
+  }
+
   const timestamp = Date.now();
   const outputPath = path.join(recordingsDir, `recording-${timestamp}.mp4`);
 
@@ -268,19 +273,15 @@ ipcMain.on("start-recording", (event, screenInfo) => {
     }
   });
 
-  ffmpegProcess.on("error", (error) => {
-    console.error("FFmpeg spawn error:", error);
-    isRecording = false;
-    ffmpegProcess = null;
-
-    // 通知渲染进程录制出错
-    event.sender.send("recording-error", `FFmpeg启动错误: ${error.toString()}`);
-  });
-
   ffmpegProcess.on("exit", (code, signal) => {
     console.log(`FFmpeg exited with code ${code} and signal ${signal}`);
     isRecording = false;
     ffmpegProcess = null;
+
+    // 恢复窗口（如果已最小化）
+    if (mainWindow && mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
 
     // 验证输出文件
     if (fs.existsSync(outputPath)) {
@@ -336,6 +337,20 @@ ipcMain.on("start-recording", (event, screenInfo) => {
       event.sender.send("recording-error", errorMsg);
     }
   });
+
+  ffmpegProcess.on("error", (error) => {
+    console.error("FFmpeg spawn error:", error);
+    isRecording = false;
+    ffmpegProcess = null;
+
+    // 恢复窗口（如果已最小化）
+    if (mainWindow && mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+
+    // 通知渲染进程录制出错
+    event.sender.send("recording-error", `FFmpeg启动错误: ${error.toString()}`);
+  });
 });
 
 // 处理停止录制
@@ -346,6 +361,11 @@ ipcMain.on("stop-recording", () => {
   }
 
   console.log("正在停止录制...");
+
+  // 恢复窗口
+  if (mainWindow && mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
 
   try {
     // 设置一个标志，表示我们正在尝试停止录制
@@ -387,5 +407,64 @@ ipcMain.on("stop-recording", () => {
         console.error("强制终止FFmpeg时出错:", killError);
       }
     }
+  }
+});
+
+// 处理保存录制文件到自定义目录
+ipcMain.handle("save-recording-as", async (event, sourcePath) => {
+  try {
+    // 检查源文件是否存在
+    if (!fs.existsSync(sourcePath)) {
+      return { success: false, error: "源文件不存在" };
+    }
+
+    // 打开保存对话框
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: "保存录制视频",
+      defaultPath: path.join(app.getPath("videos"), path.basename(sourcePath)),
+      filters: [
+        { name: "视频文件", extensions: ["mp4"] },
+        { name: "所有文件", extensions: ["*"] },
+      ],
+      properties: ["createDirectory"],
+    });
+
+    // 如果用户取消了对话框
+    if (result.canceled) {
+      return { success: false, canceled: true };
+    }
+
+    const targetPath = result.filePath;
+
+    // 复制文件到新位置
+    fs.copyFileSync(sourcePath, targetPath);
+
+    // 删除原始文件
+    fs.unlinkSync(sourcePath);
+
+    return {
+      success: true,
+      path: targetPath,
+    };
+  } catch (error) {
+    console.error("保存文件时出错:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// 处理窗口最小化
+ipcMain.on("minimize-window", () => {
+  if (mainWindow) {
+    mainWindow.minimize();
+  }
+});
+
+// 处理窗口恢复
+ipcMain.on("restore-window", () => {
+  if (mainWindow) {
+    mainWindow.restore();
   }
 });
