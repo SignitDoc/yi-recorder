@@ -1,18 +1,30 @@
 {
-  "name": "screen-recorder",
+  "name": "yi-recorder",
   "version": "1.0.0",
-  "description": "简单的屏幕录制应用",
+  "description": "易录屏 - 简单的屏幕录制应用",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.yi-recorder.app",
+    "productName": "易录屏",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon": "assets/logo.svg"
+    }
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "electron": "^34.3.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "electron-icon-builder": "^2.0.1"
   },
   "dependencies": {
     "@types/fluent-ffmpeg": "^2.1.27",

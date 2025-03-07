@@ -18,12 +18,18 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    // frame: false,
+    title: "易录屏",
+    icon: path.join(__dirname, "assets/logo.ico"),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
     },
   });
+
+  // 移除菜单栏
+  mainWindow.setMenu(null);
 
   mainWindow.loadFile("index.html");
   // 开发时打开开发者工具
