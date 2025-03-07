@@ -3,10 +3,63 @@ const path = require("path");
 const { spawn } = require("child_process");
 const fs = require("fs");
 
+// FFmpeg路径
 const ffmpegPath = "C:\\ffmpeg\\bin\\ffmpeg.exe";
+// 添加备用路径，以防主路径不可用
+const ffmpegPathAlt = path.join(process.resourcesPath, "ffmpeg", "ffmpeg.exe");
 let mainWindow;
 let ffmpegProcess = null;
 let isRecording = false;
+
+// 验证FFmpeg是否存在
+function checkFFmpegExists() {
+  // 首先检查主路径
+  if (fs.existsSync(ffmpegPath)) {
+    console.log(`FFmpeg存在于主路径: ${ffmpegPath}`);
+    return ffmpegPath;
+  }
+
+  // 检查备用路径
+  if (fs.existsSync(ffmpegPathAlt)) {
+    console.log(`FFmpeg存在于备用路径: ${ffmpegPathAlt}`);
+    return ffmpegPathAlt;
+  }
+
+  console.error(`FFmpeg不存在于任何已知路径`);
+  return false;
+}
+
+// 测试FFmpeg是否能正常工作
+function testFFmpeg() {
+  const validPath = checkFFmpegExists();
+  if (!validPath) {
+    console.error("FFmpeg不存在，无法进行测试");
+    return false;
+  }
+
+  console.log("正在测试FFmpeg...");
+  const testProcess = spawn(validPath, ["-version"], {
+    windowsHide: true,
+  });
+
+  testProcess.stdout.on("data", (data) => {
+    console.log("FFmpeg版本信息:", data.toString());
+  });
+
+  testProcess.stderr.on("data", (data) => {
+    console.error("FFmpeg测试错误:", data.toString());
+  });
+
+  testProcess.on("exit", (code) => {
+    if (code === 0) {
+      console.log("FFmpeg测试成功");
+      return true;
+    } else {
+      console.error(`FFmpeg测试失败，退出码: ${code}`);
+      return false;
+    }
+  });
+}
 
 // 确保录制目录存在
 const recordingsDir = path.join(__dirname, "recordings");
@@ -39,6 +92,9 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
+  // 测试FFmpeg
+  testFFmpeg();
+
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -51,6 +107,11 @@ app.on("window-all-closed", function () {
 // 处理获取屏幕信息的请求
 ipcMain.handle("get-screens", () => {
   const displays = screen.getAllDisplays();
+  const primaryDisplay = screen.getPrimaryDisplay();
+
+  console.log("所有显示器:", displays);
+  console.log("主显示器:", primaryDisplay);
+
   return displays.map((display, index) => {
     return {
       id: index,
@@ -59,7 +120,7 @@ ipcMain.handle("get-screens", () => {
       height: display.bounds.height,
       x: display.bounds.x,
       y: display.bounds.y,
-      isPrimary: display.id === screen.getPrimaryDisplay().id,
+      isPrimary: display.id === primaryDisplay.id,
     };
   });
 });
@@ -71,6 +132,29 @@ ipcMain.on("start-recording", (event, screenInfo) => {
     return;
   }
 
+  // 验证FFmpeg是否存在
+  const validFFmpegPath = checkFFmpegExists();
+  if (!validFFmpegPath) {
+    event.sender.send(
+      "recording-error",
+      "FFmpeg不存在，请确保已正确安装FFmpeg"
+    );
+    return;
+  }
+
+  // 验证屏幕信息
+  if (
+    !screenInfo ||
+    typeof screenInfo.width !== "number" ||
+    typeof screenInfo.height !== "number" ||
+    typeof screenInfo.x !== "number" ||
+    typeof screenInfo.y !== "number"
+  ) {
+    console.error("无效的屏幕信息:", screenInfo);
+    event.sender.send("recording-error", "无效的屏幕信息，请重新选择屏幕");
+    return;
+  }
+
   const timestamp = Date.now();
   const outputPath = path.join(recordingsDir, `recording-${timestamp}.mp4`);
 
@@ -79,47 +163,69 @@ ipcMain.on("start-recording", (event, screenInfo) => {
   const offsetX = screenInfo.x;
   const offsetY = screenInfo.y;
 
+  // 为副屏幕录制添加调试信息
+  console.log("开始录制屏幕:", screenInfo);
+  console.log("视频尺寸:", videoSize);
+  console.log("偏移量 X:", offsetX, "Y:", offsetY);
+
+  // 优化FFmpeg参数，提高录制稳定性
   const ffmpegArgs = [
+    // 输入选项
     "-f",
     "gdigrab",
     "-framerate",
     "30",
-    "-video_size",
-    videoSize,
     "-offset_x",
     offsetX.toString(),
     "-offset_y",
     offsetY.toString(),
+    "-video_size",
+    videoSize,
+    "-draw_mouse",
+    "1", // 显示鼠标
     "-i",
     "desktop",
+
+    // 视频编码选项
     "-c:v",
     "libx264",
     "-preset",
-    "ultrafast",
+    "ultrafast", // 使用最快的编码预设
     "-tune",
-    "zerolatency",
+    "zerolatency", // 优化低延迟
     "-pix_fmt",
     "yuv420p",
-    "-profile:v",
-    "baseline",
-    "-level",
-    "3.0",
-    "-bufsize",
-    "512k",
-    "-maxrate",
-    "2000k",
     "-crf",
-    "28",
+    "28", // 稍微降低质量以提高性能
+    "-r",
+    "30", // 确保输出帧率
     "-g",
-    "60",
+    "60", // 关键帧间隔
+
+    // 确保视频尺寸是偶数
+    "-vf",
+    "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+
+    // 缓冲区设置
+    "-bufsize",
+    "5M",
+
+    // 输出选项
     "-movflags",
-    "+faststart",
+    "+faststart", // 优化MP4文件结构
+    "-y",
     outputPath,
   ];
 
-  ffmpegProcess = spawn(ffmpegPath, ffmpegArgs, {
+  console.log("FFmpeg命令:", validFFmpegPath, ffmpegArgs.join(" "));
+
+  // 确保FFmpeg进程有标准输入流，并设置更高的进程优先级
+  ffmpegProcess = spawn(validFFmpegPath, ffmpegArgs, {
     detached: false,
     windowsHide: true,
+    stdio: ["pipe", "pipe", "pipe"],
+    // 设置高优先级
+    priority: "high",
   });
 
   isRecording = true;
@@ -127,17 +233,48 @@ ipcMain.on("start-recording", (event, screenInfo) => {
   // 通知渲染进程录制已开始
   event.sender.send("recording-started");
 
+  // 收集FFmpeg输出的错误信息
+  let ffmpegErrorOutput = "";
+  let ffmpegOutput = "";
+
+  // 捕获标准输出
+  ffmpegProcess.stdout.on("data", (data) => {
+    const output = data.toString();
+    ffmpegOutput += output;
+    console.log("FFmpeg stdout:", output);
+  });
+
+  // 捕获错误输出
   ffmpegProcess.stderr.on("data", (data) => {
-    console.log("FFmpeg stderr:", data.toString());
+    const output = data.toString();
+    ffmpegErrorOutput += output;
+    console.log("FFmpeg stderr:", output);
+
+    // 检查常见错误模式
+    if (
+      output.includes("Invalid argument") ||
+      output.includes("Could not open encoder") ||
+      output.includes("Error initializing output stream")
+    ) {
+      console.error("检测到FFmpeg编码器错误，可能是视频尺寸问题");
+    }
+
+    // 检查性能问题
+    if (output.includes("speed=") && output.includes("x")) {
+      const speedMatch = output.match(/speed=([0-9.]+)x/);
+      if (speedMatch && parseFloat(speedMatch[1]) < 0.5) {
+        console.warn("FFmpeg录制速度过慢，可能影响录制质量");
+      }
+    }
   });
 
   ffmpegProcess.on("error", (error) => {
-    console.error("FFmpeg error:", error);
+    console.error("FFmpeg spawn error:", error);
     isRecording = false;
     ffmpegProcess = null;
 
     // 通知渲染进程录制出错
-    event.sender.send("recording-error", error.toString());
+    event.sender.send("recording-error", `FFmpeg启动错误: ${error.toString()}`);
   });
 
   ffmpegProcess.on("exit", (code, signal) => {
@@ -148,15 +285,55 @@ ipcMain.on("start-recording", (event, screenInfo) => {
     // 验证输出文件
     if (fs.existsSync(outputPath)) {
       const stats = fs.statSync(outputPath);
-      if (stats.size === 0) {
+      if (stats.size === 0 || stats.size < 1000) {
+        // 文件为空或太小
         fs.unlinkSync(outputPath);
-        console.log("Removed empty output file");
+        console.log("Removed empty or too small output file");
+
+        // 分析错误信息
+        let errorMsg = "录制文件为空或无效。";
+        if (ffmpegErrorOutput) {
+          // 检查特定错误模式
+          if (
+            ffmpegErrorOutput.includes("Invalid argument") ||
+            ffmpegErrorOutput.includes("Could not open encoder")
+          ) {
+            errorMsg += `FFmpeg编码器错误: 可能是视频尺寸不是偶数或不支持的分辨率。详细信息: ${ffmpegErrorOutput.slice(
+              -500
+            )}`;
+          } else {
+            errorMsg += `FFmpeg错误: ${ffmpegErrorOutput.slice(-500)}`;
+          }
+        } else {
+          errorMsg += "未收到FFmpeg错误信息";
+        }
+
         // 通知渲染进程录制出错
-        event.sender.send("recording-error", "录制文件为空");
+        event.sender.send("recording-error", errorMsg);
       } else {
         // 通知渲染进程录制完成
         event.sender.send("recording-complete", outputPath);
       }
+    } else {
+      // 输出文件不存在
+      let errorMsg = "未生成录制文件。";
+      if (ffmpegErrorOutput) {
+        // 检查特定错误模式
+        if (
+          ffmpegErrorOutput.includes("Invalid argument") ||
+          ffmpegErrorOutput.includes("Could not open encoder")
+        ) {
+          errorMsg += `FFmpeg编码器错误: 可能是视频尺寸不是偶数或不支持的分辨率。详细信息: ${ffmpegErrorOutput.slice(
+            -500
+          )}`;
+        } else {
+          errorMsg += `FFmpeg错误: ${ffmpegErrorOutput.slice(-500)}`;
+        }
+      } else {
+        errorMsg += "未收到FFmpeg错误信息";
+      }
+
+      event.sender.send("recording-error", errorMsg);
     }
   });
 });
@@ -168,22 +345,47 @@ ipcMain.on("stop-recording", () => {
     return;
   }
 
+  console.log("正在停止录制...");
+
   try {
+    // 设置一个标志，表示我们正在尝试停止录制
+    const stoppingTime = Date.now();
+
     // 首先尝试发送 'q' 命令来优雅地停止 FFmpeg
     if (ffmpegProcess.stdin) {
       ffmpegProcess.stdin.write("q");
+      ffmpegProcess.stdin.end();
+      console.log("已发送停止命令到FFmpeg");
     }
 
     // 如果 5 秒后进程仍在运行，则强制终止
-    setTimeout(() => {
+    const killTimeout = setTimeout(() => {
       if (ffmpegProcess) {
-        ffmpegProcess.kill("SIGKILL");
+        console.log(
+          `FFmpeg进程在 ${
+            (Date.now() - stoppingTime) / 1000
+          } 秒后仍在运行，强制终止`
+        );
+        try {
+          ffmpegProcess.kill("SIGKILL");
+        } catch (killError) {
+          console.error("强制终止FFmpeg时出错:", killError);
+        }
       }
     }, 5000);
+
+    // 添加一个退出监听器，如果进程正常退出，清除超时
+    ffmpegProcess.on("exit", () => {
+      clearTimeout(killTimeout);
+    });
   } catch (error) {
     console.error("Error stopping FFmpeg:", error);
     if (ffmpegProcess) {
-      ffmpegProcess.kill("SIGKILL");
+      try {
+        ffmpegProcess.kill("SIGKILL");
+      } catch (killError) {
+        console.error("强制终止FFmpeg时出错:", killError);
+      }
     }
   }
 });
