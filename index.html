@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>屏幕录制</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+      }
+
+      .container {
+        text-align: center;
+        padding: 20px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 80%;
+        max-width: 600px;
+      }
+
+      button {
+        padding: 10px 20px;
+        margin: 10px;
+        font-size: 16px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      #startBtn {
+        background-color: #4caf50;
+        color: white;
+      }
+
+      #stopBtn {
+        background-color: #f44336;
+        color: white;
+        display: none;
+      }
+
+      #status {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #666;
+      }
+
+      .screen-selection {
+        margin: 20px 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .screen-option {
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        width: 150px;
+        position: relative;
+      }
+
+      .screen-option.selected {
+        border-color: #4caf50;
+        background-color: rgba(76, 175, 80, 0.1);
+      }
+
+      .screen-preview {
+        width: 100%;
+        height: 80px;
+        background-color: #eee;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      }
+
+      .screen-info {
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .primary-badge {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background-color: #4caf50;
+        color: white;
+        font-size: 10px;
+        padding: 2px 5px;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>屏幕录制</h1>
+
+      <div id="screenSelectionContainer">
+        <h3>请选择要录制的屏幕：</h3>
+        <div id="screenSelection" class="screen-selection">
+          <!-- 屏幕选项将在这里动态生成 -->
+          <div class="loading">正在加载屏幕信息...</div>
+        </div>
+      </div>
+
+      <button id="startBtn">开始录制</button>
+      <button id="stopBtn">停止录制</button>
+      <div id="status"></div>
+    </div>
+
+    <script>
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const status = document.getElementById("status");
+      const screenSelection = document.getElementById("screenSelection");
+      const screenSelectionContainer = document.getElementById(
+        "screenSelectionContainer"
+      );
+
+      let selectedScreen = null;
+      let screens = [];
+
+      // 获取屏幕信息
+      async function loadScreens() {
+        try {
+          screens = await window.electronAPI.getScreens();
+          renderScreenOptions(screens);
+        } catch (error) {
+          status.textContent = `获取屏幕信息失败: ${error}`;
+        }
+      }
+
+      // 渲染屏幕选项
+      function renderScreenOptions(screens) {
+        screenSelection.innerHTML = "";
+
+        screens.forEach((screen) => {
+          const screenOption = document.createElement("div");
+          screenOption.className = "screen-option";
+          screenOption.dataset.screenId = screen.id;
+
+          const preview = document.createElement("div");
+          preview.className = "screen-preview";
+          preview.textContent = `${screen.width} x ${screen.height}`;
+
+          const info = document.createElement("div");
+          info.className = "screen-info";
+          info.textContent = screen.name;
+
+          screenOption.appendChild(preview);
+          screenOption.appendChild(info);
+
+          if (screen.isPrimary) {
+            const badge = document.createElement("div");
+            badge.className = "primary-badge";
+            badge.textContent = "主屏幕";
+            screenOption.appendChild(badge);
+
+            // 默认选择主屏幕
+            screenOption.classList.add("selected");
+            selectedScreen = screen;
+          }
+
+          screenOption.addEventListener("click", () => {
+            // 移除其他选项的选中状态
+            document.querySelectorAll(".screen-option").forEach((option) => {
+              option.classList.remove("selected");
+            });
+
+            // 设置当前选项为选中状态
+            screenOption.classList.add("selected");
+            selectedScreen = screen;
+          });
+
+          screenSelection.appendChild(screenOption);
+        });
+      }
+
+      // 页面加载完成后获取屏幕信息
+      document.addEventListener("DOMContentLoaded", loadScreens);
+
+      startBtn.addEventListener("click", () => {
+        if (!selectedScreen) {
+          status.textContent = "请先选择一个屏幕";
+          return;
+        }
+
+        window.electronAPI.startRecording(selectedScreen);
+        startBtn.style.display = "none";
+        stopBtn.style.display = "inline-block";
+        screenSelectionContainer.style.display = "none";
+        status.textContent = "正在录制...";
+      });
+
+      stopBtn.addEventListener("click", () => {
+        window.electronAPI.stopRecording();
+        stopBtn.style.display = "none";
+        startBtn.style.display = "inline-block";
+        screenSelectionContainer.style.display = "block";
+        status.textContent = "录制已停止";
+      });
+
+      window.electronAPI.onRecordingStarted((event) => {
+        status.textContent = "录制已开始";
+      });
+
+      window.electronAPI.onRecordingComplete((event, outputPath) => {
+        status.textContent = `录制完成！文件保存在: ${outputPath}`;
+      });
+
+      window.electronAPI.onRecordingError((event, error) => {
+        status.textContent = `录制出错: ${error}`;
+        stopBtn.style.display = "none";
+        startBtn.style.display = "inline-block";
+        screenSelectionContainer.style.display = "block";
+      });
+    </script>
+  </body>
+</html>
