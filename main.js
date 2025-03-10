@@ -3,15 +3,36 @@ const path = require("path");
 const { spawn } = require("child_process");
 const fs = require("fs");
 
-// FFmpeg路径
-const ffmpegPath = path.join(__dirname, "ffmpeg", "bin", "ffmpeg.exe");
-// 添加备用路径，以防主路径不可用
-const ffmpegPathAlt = path.join(
-  process.resourcesPath,
-  "ffmpeg",
-  "bin",
-  "ffmpeg.exe"
-);
+// 根据应用是否打包确定 FFmpeg 路径
+let ffmpegPath;
+let ffmpegPathAlt;
+
+// 在 app ready 之后设置路径
+function setupFFmpegPaths() {
+  if (app.isPackaged) {
+    // 打包环境
+    ffmpegPath = path.join(
+      process.resourcesPath,
+      "ffmpeg",
+      "bin",
+      "ffmpeg.exe"
+    );
+    ffmpegPathAlt = path.join(app.getAppPath(), "ffmpeg", "bin", "ffmpeg.exe");
+  } else {
+    // 开发环境
+    ffmpegPath = path.join(__dirname, "ffmpeg", "bin", "ffmpeg.exe");
+    ffmpegPathAlt = path.join(
+      process.resourcesPath,
+      "ffmpeg",
+      "bin",
+      "ffmpeg.exe"
+    );
+  }
+
+  console.log("主 FFmpeg 路径:", ffmpegPath);
+  console.log("备用 FFmpeg 路径:", ffmpegPathAlt);
+}
+
 let mainWindow;
 let ffmpegProcess = null;
 let isRecording = false;
@@ -67,9 +88,17 @@ function testFFmpeg() {
 }
 
 // 确保录制目录存在
-const recordingsDir = path.join(__dirname, "recordings");
+let recordingsDir;
+if (app.isPackaged) {
+  // 在打包环境中使用用户数据目录
+  recordingsDir = path.join(app.getPath("userData"), "recordings");
+} else {
+  // 在开发环境中使用项目目录
+  recordingsDir = path.join(__dirname, "recordings");
+}
+
 if (!fs.existsSync(recordingsDir)) {
-  fs.mkdirSync(recordingsDir);
+  fs.mkdirSync(recordingsDir, { recursive: true });
 }
 
 function createWindow() {
@@ -98,6 +127,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // 设置 FFmpeg 路径
+  setupFFmpegPaths();
+
   createWindow();
 
   // 测试FFmpeg

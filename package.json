@@ -6,24 +6,75 @@
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "electron-builder"
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "build-win": "electron-builder --dir --win --x64 --publish never --config.forceCodeSigning=false",
+    "postinstall": "electron-builder install-app-deps"
   },
   "build": {
     "appId": "com.yi-recorder.app",
-    "productName": "易录屏",
+    "productName": "YiRecorder",
+    "copyright": "Copyright © 2024",
     "directories": {
-      "output": "dist"
+      "output": "dist-newer"
     },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ],
+    "extraResources": [
+      {
+        "from": "ffmpeg",
+        "to": "ffmpeg",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "win": {
-      "icon": "assets/logo.svg"
-    }
+      "icon": "assets/logo.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signingHashAlgorithms": null,
+      "artifactName": "${productName}-${version}.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "YiRecorder",
+      "installerIcon": "assets/logo.ico",
+      "uninstallerIcon": "assets/logo.ico",
+      "installerHeaderIcon": "assets/logo.ico",
+      "license": "LICENSE.txt"
+    },
+    "forceCodeSigning": false,
+    "asar": true
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^34.3.0",
-    "electron-builder": "^25.1.8",
+    "electron": "^24.8.8",
+    "electron-builder": "^24.9.1",
     "electron-icon-builder": "^2.0.1"
   },
   "dependencies": {
