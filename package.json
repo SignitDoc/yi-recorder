@@ -5,7 +5,7 @@
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "package-win": "electron-packager . 屏幕录制工具 --platform=win32 --arch=x64 --icon=assets/logo.ico --out=dist --overwrite"
+    "package-win": "electron-packager . 易录屏 --platform=win32 --arch=x64 --icon=assets/logo.ico --out=dist --overwrite"
   },
   "keywords": [],
   "author": "",
