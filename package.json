@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "description": "一个基于Electron的轻量级屏幕录制应用",
   "devDependencies": {
     "electron": "^28.1.0",
