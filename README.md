@@ -15,7 +15,8 @@
 
 ## 截图展示
 
-![易录屏界面](./assets/logo.svg)
+![Snipaste_2025-03-19_17-32-25](https://github.com/user-attachments/assets/a2af8e01-2a81-4120-8e9a-a21a13b7aa1b)
+
 
 ## 安装方法
 
