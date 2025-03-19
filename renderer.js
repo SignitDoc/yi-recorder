@@ -2,7 +2,6 @@
 const recordBtn = document.getElementById("recordBtn");
 const stopBtn = document.getElementById("stopBtn");
 const saveBtn = document.getElementById("saveBtn");
-const videoElement = document.getElementById("preview");
 const timerElement = document.getElementById("timer");
 const statusElement = document.getElementById("status");
 
@@ -60,10 +59,6 @@ async function startRecording() {
     // 获取媒体流
     stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-    // 显示预览
-    videoElement.srcObject = stream;
-    videoElement.style.display = "block";
-
     // 创建MediaRecorder实例
     mediaRecorder = new MediaRecorder(stream, {
       mimeType: "video/webm; codecs=vp9",
@@ -79,7 +74,7 @@ async function startRecording() {
     // 录制结束处理
     mediaRecorder.onstop = () => {
       stopTimer();
-      statusElement.textContent = "录制已完成。可以预览和保存录制内容。";
+      statusElement.textContent = "录制已完成。可以保存录制内容。";
     };
 
     // 开始录制

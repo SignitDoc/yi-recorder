@@ -16,7 +16,7 @@ let mainWindow;
 
 function createWindow() {
   // 检查preload脚本是否存在
-  const preloadPath = path.join(__dirname, "preload-simple.js");
+  const preloadPath = path.join(__dirname, "preload.js");
   console.log("Preload脚本路径:", preloadPath);
   console.log("Preload脚本存在:", fs.existsSync(preloadPath));
 

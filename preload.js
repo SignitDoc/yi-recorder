@@ -1,30 +1,30 @@
-const { contextBridge, ipcRenderer, desktopCapturer } = require("electron");
+const { contextBridge, ipcRenderer } = require("electron");
+const electron = require("electron");
 
-// 在控制台打印调试信息
-console.log("Preload脚本已加载");
+console.log("简化版preload脚本已加载");
+console.log("electron对象:", typeof electron);
+console.log("electron中的desktopCapturer:", typeof electron.desktopCapturer);
 
-// 暴露给渲染进程的API
 contextBridge.exposeInMainWorld("electronAPI", {
-  // 录制相关
-  getDesktopSources: async () => {
-    console.log("getDesktopSources被调用");
+  captureScreen: async () => {
+    console.log("captureScreen函数被调用");
     try {
-      const sources = await desktopCapturer.getSources({
-        types: ["screen"],
-        thumbnailSize: { width: 0, height: 0 },
-      });
-      console.log("获取到屏幕源:", sources.length);
+      // 通过IPC调用主进程来获取屏幕源
+      const sources = await ipcRenderer.invoke("get-sources");
+      console.log("屏幕源:", sources ? sources.length : 0);
       return sources;
     } catch (error) {
-      console.error("获取屏幕源出错:", error);
+      console.error("捕获屏幕时出错:", error);
       throw error;
     }
   },
 
-  // IPC通信
-  saveRecording: (buffer) => ipcRenderer.send("save-recording", buffer),
-  onSaveRecordingResponse: (callback) =>
-    ipcRenderer.on("save-recording-response", (event, response) =>
+  saveFile: (buffer) => ipcRenderer.send("save-recording", buffer),
+
+  onSaveComplete: (callback) => {
+    ipcRenderer.on("save-recording-response", (_event, response) =>
       callback(response)
-    ),
+    );
+    return true;
+  },
 });
