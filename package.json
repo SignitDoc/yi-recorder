@@ -5,30 +5,44 @@
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "electron-builder"
+    "package-win": "electron-packager . 屏幕录制工具 --platform=win32 --arch=x64 --icon=assets/logo.ico --out=dist --overwrite"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "基于Electron的屏幕录制应用",
+  "description": "一个基于Electron的轻量级屏幕录制应用",
   "devDependencies": {
     "electron": "^28.1.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
   },
   "build": {
     "appId": "com.yi.screenrecorder",
-    "productName": "屏幕录制工具",
+    "productName": "易录屏",
     "directories": {
       "output": "dist"
     },
     "win": {
-      "icon": "assets/logo.ico"
+      "icon": "assets/logo.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-Portable-${version}.${ext}"
     },
-    "mac": {
-      "icon": "assets/logo.ico"
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.exe"
     },
-    "linux": {
-      "icon": "assets/logo.ico"
-    }
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ]
   }
 }

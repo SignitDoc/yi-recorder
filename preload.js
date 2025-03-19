@@ -27,4 +27,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     );
     return true;
   },
+
+  minimizeWindow: () => ipcRenderer.send("minimize-window"),
 });

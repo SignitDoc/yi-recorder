@@ -35,7 +35,7 @@ function createWindow() {
   mainWindow.loadFile("index.html");
 
   // 开发时打开开发者工具
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -99,5 +99,12 @@ ipcMain.on("save-recording", async (event, buffer) => {
       success: false,
       message: "保存取消",
     });
+  }
+});
+
+// 处理最小化窗口请求
+ipcMain.on("minimize-window", () => {
+  if (mainWindow) {
+    mainWindow.minimize();
   }
 });

@@ -87,6 +87,11 @@ async function startRecording() {
     recordBtn.classList.add("recording");
     recordBtn.textContent = "正在录制";
     statusElement.textContent = "正在录制屏幕...";
+
+    // 自动最小化窗口
+    setTimeout(() => {
+      window.electronAPI.minimizeWindow();
+    }, 1000); // 延迟1秒最小化，让用户能看到录制已开始
   } catch (error) {
     console.error("启动录制时出错:", error);
     statusElement.textContent = `录制失败: ${error.message}`;
