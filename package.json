@@ -4,13 +4,31 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "基于Electron的屏幕录制应用",
   "devDependencies": {
-    "electron": "^28.1.0"
+    "electron": "^28.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.yi.screenrecorder",
+    "productName": "屏幕录制工具",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon": "assets/logo.ico"
+    },
+    "mac": {
+      "icon": "assets/logo.ico"
+    },
+    "linux": {
+      "icon": "assets/logo.ico"
+    }
   }
 }

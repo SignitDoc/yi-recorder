@@ -29,7 +29,7 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false, // 禁用沙盒以允许更多功能
     },
-    icon: path.join(__dirname, "assets/icon.png"),
+    icon: path.join(__dirname, "assets/logo.ico"),
   });
 
   mainWindow.loadFile("index.html");
