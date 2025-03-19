@@ -1,324 +1,118 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>易录屏</title>
+    <meta charset="UTF-8" />
+    <title>屏幕录制工具</title>
     <style>
       body {
         font-family: Arial, sans-serif;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
         margin: 0;
-        background-color: #f0f0f0;
+        padding: 20px;
+        background-color: #f5f5f5;
+        color: #333;
+        text-align: center;
+      }
+
+      h1 {
+        color: #2c3e50;
+        margin-bottom: 20px;
       }
 
       .container {
-        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
         padding: 20px;
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        width: 80%;
-        max-width: 600px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       }
 
-      button {
-        padding: 10px 20px;
-        margin: 10px;
-        font-size: 16px;
-        cursor: pointer;
-        border: none;
-        border-radius: 4px;
-        transition: background-color 0.3s;
-      }
-
-      #startBtn {
-        background-color: #4caf50;
-        color: white;
-      }
-
-      #stopBtn {
-        background-color: #f44336;
-        color: white;
-        display: none;
-      }
-
-      #status {
-        margin-top: 20px;
-        font-size: 14px;
-        color: #666;
-      }
-
-      .screen-selection {
+      .controls {
         margin: 20px 0;
         display: flex;
-        flex-wrap: wrap;
         justify-content: center;
         gap: 10px;
       }
 
-      .screen-option {
-        border: 2px solid #ddd;
+      button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
         border-radius: 4px;
-        padding: 10px;
         cursor: pointer;
-        transition: all 0.3s;
-        width: 150px;
-        position: relative;
+        transition: background-color 0.3s;
       }
 
-      .screen-option.selected {
-        border-color: #4caf50;
-        background-color: rgba(76, 175, 80, 0.1);
+      button:hover {
+        background-color: #2980b9;
       }
 
-      .screen-preview {
+      button:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+      }
+
+      #recordBtn {
+        background-color: #e74c3c;
+      }
+
+      #recordBtn:hover {
+        background-color: #c0392b;
+      }
+
+      #recordBtn.recording {
+        background-color: #2ecc71;
+      }
+
+      #recordBtn.recording:hover {
+        background-color: #27ae60;
+      }
+
+      #preview {
         width: 100%;
-        height: 80px;
-        background-color: #eee;
-        margin-bottom: 5px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-      }
-
-      .screen-info {
-        font-size: 12px;
-        text-align: center;
-      }
-
-      .primary-badge {
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        background-color: #4caf50;
-        color: white;
-        font-size: 10px;
-        padding: 2px 5px;
-        border-radius: 3px;
-      }
-
-      .action-buttons {
-        margin-top: 15px;
-      }
-
-      .save-btn {
-        background-color: #2196f3;
-        color: white;
-      }
-
-      .modal {
+        max-width: 700px;
+        height: 400px;
+        background-color: #2c3e50;
+        border-radius: 4px;
+        margin: 0 auto;
         display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        z-index: 100;
-        align-items: center;
-        justify-content: center;
       }
 
-      .modal-content {
-        background-color: white;
-        padding: 20px;
-        border-radius: 8px;
-        width: 80%;
-        max-width: 500px;
-        text-align: center;
+      .status {
+        margin-top: 10px;
+        padding: 10px;
+        color: #7f8c8d;
       }
 
-      .modal-buttons {
-        margin-top: 20px;
+      .timer {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px 0;
+        color: #e74c3c;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>易录屏</h1>
+      <h1>屏幕录制工具</h1>
 
-      <div id="screenSelectionContainer">
-        <h3>请选择要录制的屏幕：</h3>
-        <div id="screenSelection" class="screen-selection">
-          <!-- 屏幕选项将在这里动态生成 -->
-          <div class="loading">正在加载屏幕信息...</div>
-        </div>
+      <div class="controls">
+        <button id="recordBtn">开始录制</button>
+        <button id="stopBtn" disabled>停止录制</button>
+        <button id="saveBtn" disabled>保存录制</button>
       </div>
 
-      <button id="startBtn">开始录制</button>
-      <button id="stopBtn">停止录制</button>
-      <div id="status"></div>
-    </div>
+      <div class="timer" id="timer">00:00:00</div>
 
-    <!-- 保存对话框 -->
-    <div id="saveModal" class="modal">
-      <div class="modal-content">
-        <h3>录制完成</h3>
-        <p>您的录制已完成，请选择操作：</p>
-        <div class="modal-buttons">
-          <button id="saveAsBtn" class="save-btn">选择保存位置</button>
-          <button id="closeModalBtn">使用默认位置</button>
-        </div>
-        <p id="modalStatus"></p>
+      <video id="preview" autoplay></video>
+
+      <div class="status" id="status">
+        准备就绪。点击"开始录制"按钮开始全屏录制。
       </div>
     </div>
 
-    <script>
-      const startBtn = document.getElementById("startBtn");
-      const stopBtn = document.getElementById("stopBtn");
-      const status = document.getElementById("status");
-      const screenSelection = document.getElementById("screenSelection");
-      const screenSelectionContainer = document.getElementById(
-        "screenSelectionContainer"
-      );
-      const saveModal = document.getElementById("saveModal");
-      const saveAsBtn = document.getElementById("saveAsBtn");
-      const closeModalBtn = document.getElementById("closeModalBtn");
-      const modalStatus = document.getElementById("modalStatus");
-
-      let selectedScreen = null;
-      let screens = [];
-      let currentRecordingPath = null;
-
-      // 获取屏幕信息
-      async function loadScreens() {
-        try {
-          screens = await window.electronAPI.getScreens();
-          renderScreenOptions(screens);
-        } catch (error) {
-          status.textContent = `获取屏幕信息失败: ${error}`;
-        }
-      }
-
-      // 渲染屏幕选项
-      function renderScreenOptions(screens) {
-        screenSelection.innerHTML = "";
-
-        screens.forEach((screen) => {
-          const screenOption = document.createElement("div");
-          screenOption.className = "screen-option";
-          screenOption.dataset.screenId = screen.id;
-
-          const preview = document.createElement("div");
-          preview.className = "screen-preview";
-          preview.textContent = `${screen.width} x ${screen.height}`;
-
-          const info = document.createElement("div");
-          info.className = "screen-info";
-          info.textContent = screen.name;
-
-          screenOption.appendChild(preview);
-          screenOption.appendChild(info);
-
-          if (screen.isPrimary) {
-            const badge = document.createElement("div");
-            badge.className = "primary-badge";
-            badge.textContent = "主屏幕";
-            screenOption.appendChild(badge);
-
-            // 默认选择主屏幕
-            screenOption.classList.add("selected");
-            selectedScreen = screen;
-          }
-
-          screenOption.addEventListener("click", () => {
-            // 移除其他选项的选中状态
-            document.querySelectorAll(".screen-option").forEach((option) => {
-              option.classList.remove("selected");
-            });
-
-            // 设置当前选项为选中状态
-            screenOption.classList.add("selected");
-            selectedScreen = screen;
-          });
-
-          screenSelection.appendChild(screenOption);
-        });
-      }
-
-      // 页面加载完成后获取屏幕信息
-      document.addEventListener("DOMContentLoaded", loadScreens);
-
-      startBtn.addEventListener("click", () => {
-        if (!selectedScreen) {
-          status.textContent = "请先选择一个屏幕";
-          return;
-        }
-
-        window.electronAPI.startRecording(selectedScreen);
-        startBtn.style.display = "none";
-        stopBtn.style.display = "inline-block";
-        screenSelectionContainer.style.display = "none";
-        status.textContent =
-          "正在录制...（应用已最小化，录制完成后将自动恢复）";
-      });
-
-      stopBtn.addEventListener("click", () => {
-        window.electronAPI.stopRecording();
-        stopBtn.style.display = "none";
-        startBtn.style.display = "inline-block";
-        screenSelectionContainer.style.display = "block";
-        status.textContent = "录制已停止";
-      });
-
-      window.electronAPI.onRecordingStarted((event) => {
-        status.textContent = "录制已开始";
-      });
-
-      window.electronAPI.onRecordingComplete((event, outputPath) => {
-        currentRecordingPath = outputPath;
-
-        // 显示保存对话框
-        saveModal.style.display = "flex";
-        status.textContent = `录制完成！`;
-      });
-
-      // 处理"选择保存位置"按钮
-      saveAsBtn.addEventListener("click", async () => {
-        if (!currentRecordingPath) {
-          modalStatus.textContent = "没有可用的录制文件";
-          return;
-        }
-
-        modalStatus.textContent = "正在处理...";
-
-        try {
-          const result = await window.electronAPI.saveRecordingAs(
-            currentRecordingPath
-          );
-
-          if (result.success) {
-            modalStatus.textContent = `文件已保存到: ${result.path}`;
-            setTimeout(() => {
-              saveModal.style.display = "none";
-              modalStatus.textContent = "";
-            }, 3000);
-          } else if (result.canceled) {
-            modalStatus.textContent = "已取消保存";
-          } else {
-            modalStatus.textContent = `保存失败: ${result.error}`;
-          }
-        } catch (error) {
-          modalStatus.textContent = `发生错误: ${error}`;
-        }
-      });
-
-      // 处理"使用默认位置"按钮
-      closeModalBtn.addEventListener("click", () => {
-        saveModal.style.display = "none";
-        status.textContent = `录制完成！文件保存在: ${currentRecordingPath}`;
-      });
-
-      window.electronAPI.onRecordingError((event, error) => {
-        status.textContent = `录制出错: ${error}`;
-        stopBtn.style.display = "none";
-        startBtn.style.display = "inline-block";
-        screenSelectionContainer.style.display = "block";
-      });
-    </script>
+    <script src="renderer.js"></script>
   </body>
 </html>
