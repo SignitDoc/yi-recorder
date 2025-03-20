@@ -4,6 +4,7 @@ const stopBtn = document.getElementById("stopBtn");
 const saveBtn = document.getElementById("saveBtn");
 const timerElement = document.getElementById("timer");
 const statusElement = document.getElementById("status");
+const recordAudioCheckbox = document.getElementById("recordAudio");
 
 // 录制状态变量
 let mediaRecorder;
@@ -47,7 +48,13 @@ async function startRecording() {
 
     // 设置媒体约束
     const constraints = {
-      audio: false,
+      audio: recordAudioCheckbox.checked
+        ? {
+            mandatory: {
+              chromeMediaSource: "desktop",
+            },
+          }
+        : false,
       video: {
         mandatory: {
           chromeMediaSource: "desktop",
@@ -55,6 +62,8 @@ async function startRecording() {
         },
       },
     };
+
+    console.log("使用的媒体约束:", JSON.stringify(constraints));
 
     // 获取媒体流
     stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -74,7 +83,9 @@ async function startRecording() {
     // 录制结束处理
     mediaRecorder.onstop = () => {
       stopTimer();
-      statusElement.textContent = "录制已完成。可以保存录制内容。";
+      statusElement.textContent = `录制已完成。${
+        recordAudioCheckbox.checked ? "包含系统声音。" : ""
+      }可以保存录制内容。`;
     };
 
     // 开始录制
@@ -84,9 +95,12 @@ async function startRecording() {
     // 更新UI状态
     recordBtn.disabled = true;
     stopBtn.disabled = false;
+    recordAudioCheckbox.disabled = true;
     recordBtn.classList.add("recording");
     recordBtn.textContent = "正在录制";
-    statusElement.textContent = "正在录制屏幕...";
+    statusElement.textContent = `正在录制屏幕${
+      recordAudioCheckbox.checked ? "和系统声音" : ""
+    }...`;
 
     // 自动最小化窗口
     setTimeout(() => {
@@ -95,6 +109,7 @@ async function startRecording() {
   } catch (error) {
     console.error("启动录制时出错:", error);
     statusElement.textContent = `录制失败: ${error.message}`;
+    recordAudioCheckbox.disabled = false;
   }
 }
 
@@ -111,6 +126,7 @@ function stopRecording() {
   recordBtn.disabled = false;
   stopBtn.disabled = true;
   saveBtn.disabled = false;
+  recordAudioCheckbox.disabled = false;
   recordBtn.classList.remove("recording");
   recordBtn.textContent = "开始录制";
 }

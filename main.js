@@ -30,15 +30,25 @@ function createWindow() {
 
   mainWindow = new BrowserWindow({
     width: 600,
-    height: 350,
+    height: 380,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // 禁用沙盒以允许更多功能
+      // 允许访问媒体设备和捕获系统音频
+      audioCapturerEnabled: true,
     },
     icon: path.join(__dirname, "assets/logo.ico"),
   });
+
+  // 启用系统音频录制
+  try {
+    mainWindow.webContents.audioCapturerStartRecording();
+    console.log("系统音频录制功能已启用");
+  } catch (error) {
+    console.error("启用系统音频录制失败:", error);
+  }
 
   mainWindow.loadFile("index.html");
 
@@ -49,6 +59,10 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+// 添加应用启动参数，允许录制系统音频
+app.commandLine.appendSwitch("enable-features", "WebRTCAudioCapturing");
+app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
 
 app.whenReady().then(createWindow);
 
@@ -68,8 +82,9 @@ app.on("activate", () => {
 ipcMain.handle("get-sources", async () => {
   try {
     const sources = await desktopCapturer.getSources({
-      types: ["screen"],
+      types: ["screen", "window"],
       thumbnailSize: { width: 100, height: 100 },
+      fetchWindowIcons: true,
     });
     return sources;
   } catch (error) {

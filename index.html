@@ -34,6 +34,24 @@
         gap: 10px;
       }
 
+      .options {
+        margin: 15px 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .checkbox-container {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      .checkbox-container input {
+        margin-right: 5px;
+      }
+
       button {
         background-color: #3498db;
         color: white;
@@ -87,6 +105,13 @@
   <body>
     <div class="container">
       <h1>易录屏</h1>
+
+      <div class="options">
+        <label class="checkbox-container">
+          <input type="checkbox" id="recordAudio" checked />
+          录制系统声音
+        </label>
+      </div>
 
       <div class="controls">
         <button id="recordBtn">开始录制</button>
