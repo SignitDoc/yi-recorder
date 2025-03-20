@@ -16,6 +16,9 @@
     "electron-builder": "^24.13.3",
     "electron-packager": "^17.1.2"
   },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  },
   "build": {
     "appId": "com.yi.screenrecorder",
     "productName": "易录屏",

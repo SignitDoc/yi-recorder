@@ -8,6 +8,14 @@ const {
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const { exec } = require("child_process");
+const os = require("os");
+const ffmpegPath = require("ffmpeg-static");
+
+// 获取FFmpeg可执行文件路径
+function getFfmpegPath() {
+  return ffmpegPath;
+}
 
 // 隐藏菜单栏
 Menu.setApplicationMenu(null);
@@ -21,8 +29,8 @@ function createWindow() {
   console.log("Preload脚本存在:", fs.existsSync(preloadPath));
 
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 600,
+    height: 350,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -74,23 +82,75 @@ ipcMain.handle("get-sources", async () => {
 ipcMain.on("save-recording", async (event, buffer) => {
   const { filePath } = await dialog.showSaveDialog({
     buttonLabel: "保存视频",
-    defaultPath: `recording-${Date.now()}.webm`,
-    filters: [{ name: "WebM 文件", extensions: ["webm"] }],
+    defaultPath: `recording-${Date.now()}.mp4`,
+    filters: [{ name: "MP4 文件", extensions: ["mp4"] }],
   });
 
   if (filePath) {
-    fs.writeFile(filePath, buffer, (err) => {
+    // 创建临时WebM文件
+    const tempDir = os.tmpdir();
+    const tempWebmPath = path.join(tempDir, `temp-${Date.now()}.webm`);
+    const tempMp4Path = path.join(tempDir, `temp-${Date.now()}.mp4`);
+
+    // 先保存WebM文件
+    fs.writeFile(tempWebmPath, buffer, async (err) => {
       if (err) {
-        console.error("保存录像失败:", err);
+        console.error("保存临时WebM文件失败:", err);
         event.reply("save-recording-response", {
           success: false,
           message: "保存失败",
         });
-      } else {
+        return;
+      }
+
+      try {
+        console.log("使用的FFmpeg路径:", getFfmpegPath());
+        const ffmpegPath = getFfmpegPath();
+        if (!fs.existsSync(ffmpegPath)) {
+          throw new Error("找不到FFmpeg可执行文件: " + ffmpegPath);
+        }
+
+        // 使用FFmpeg转换WebM为MP4
+        await new Promise((resolve, reject) => {
+          exec(
+            `"${ffmpegPath}" -i "${tempWebmPath}" -c:v libx264 -preset medium -crf 23 "${tempMp4Path}"`,
+            (error, stdout, stderr) => {
+              if (error) {
+                console.error("FFmpeg错误:", error);
+                console.error("FFmpeg输出:", stderr);
+                reject(error);
+                return;
+              }
+              resolve();
+            }
+          );
+        });
+
+        // 将转换后的MP4文件移动到目标位置
+        fs.renameSync(tempMp4Path, filePath);
+
+        // 清理临时文件
+        fs.unlinkSync(tempWebmPath);
+
         event.reply("save-recording-response", {
           success: true,
           message: "保存成功",
           filePath,
+        });
+      } catch (error) {
+        console.error("转换视频格式失败:", error);
+        // 清理临时文件
+        try {
+          fs.unlinkSync(tempWebmPath);
+          if (fs.existsSync(tempMp4Path)) {
+            fs.unlinkSync(tempMp4Path);
+          }
+        } catch (cleanupError) {
+          console.error("清理临时文件失败:", cleanupError);
+        }
+        event.reply("save-recording-response", {
+          success: false,
+          message: "转换视频格式失败: " + error.message,
         });
       }
     });
