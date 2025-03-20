@@ -15,7 +15,7 @@
 
 ## 截图展示
 
-![Snipaste_2025-03-19_17-32-25](https://github.com/user-attachments/assets/a2af8e01-2a81-4120-8e9a-a21a13b7aa1b)
+![image](https://github.com/user-attachments/assets/f8042860-134b-43c6-b5f6-7cc3ab4679f4)
 
 
 ## 安装方法
