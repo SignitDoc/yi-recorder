@@ -9,14 +9,13 @@
 - 🎥 一键开始录制整个屏幕
 - ⏱️ 实时显示录制时长
 - 💻 录制开始后自动最小化窗口，不影响录制内容
-- 💾 支持将录制内容保存为 WebM 格式
+- 💾 支持将录制内容保存为 WebM/MP4 格式
 - 🖥️ 跨平台支持（Windows/macOS/Linux）
 - 🚀 轻量级，启动快速，占用资源少
 
 ## 截图展示
 
 ![image](https://github.com/user-attachments/assets/f8042860-134b-43c6-b5f6-7cc3ab4679f4)
-
 
 ## 安装方法
 

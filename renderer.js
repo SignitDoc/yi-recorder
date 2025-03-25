@@ -5,6 +5,7 @@ const saveBtn = document.getElementById("saveBtn");
 const timerElement = document.getElementById("timer");
 const statusElement = document.getElementById("status");
 const recordAudioCheckbox = document.getElementById("recordAudio");
+const loadingOverlay = document.getElementById("loadingOverlay");
 
 // 录制状态变量
 let mediaRecorder;
@@ -139,6 +140,7 @@ function saveRecording() {
   }
 
   statusElement.textContent = "正在处理录制内容，请稍候...";
+  loadingOverlay.style.display = "flex";
 
   // 合并所有录制的片段
   const blob = new Blob(recordedChunks, { type: "video/webm" });
@@ -158,6 +160,8 @@ function saveRecording() {
 
 // 处理保存录制文件的响应
 function handleSaveResponse(response) {
+  loadingOverlay.style.display = "none";
+
   if (response.success) {
     statusElement.textContent = `${response.message}：${response.filePath}`;
     // 清除录制的数据
