@@ -33,7 +33,12 @@ document.addEventListener("DOMContentLoaded", () => {
 // 启动录制
 async function startRecording() {
   try {
-    statusElement.textContent = "正在准备录制...";
+    statusElement.textContent = "准备开始录制...";
+
+    // 显示倒计时
+    await showCountdown(3);
+
+    statusElement.textContent = "正在启动录制...";
 
     // 获取可用的屏幕源（全屏）
     console.log("开始获取屏幕源");
@@ -96,6 +101,7 @@ async function startRecording() {
     // 更新UI状态
     recordBtn.disabled = true;
     stopBtn.disabled = false;
+    saveBtn.disabled = true; // 录制中禁用保存按钮
     recordAudioCheckbox.disabled = true;
     recordBtn.classList.add("recording");
     recordBtn.textContent = "正在录制";
@@ -103,10 +109,8 @@ async function startRecording() {
       recordAudioCheckbox.checked ? "和系统声音" : ""
     }...`;
 
-    // 自动最小化窗口
-    setTimeout(() => {
-      window.electronAPI.minimizeWindow();
-    }, 1000); // 延迟1秒最小化，让用户能看到录制已开始
+    // 最小化窗口并开始录制
+    window.electronAPI.minimizeWindow();
   } catch (error) {
     console.error("启动录制时出错:", error);
     statusElement.textContent = `录制失败: ${error.message}`;
@@ -196,4 +200,41 @@ function updateTimer() {
 
 function padZero(num) {
   return num.toString().padStart(2, "0");
+}
+
+// 显示倒计时动画
+async function showCountdown(seconds) {
+  return new Promise((resolve) => {
+    const countdownOverlay = document.createElement("div");
+    countdownOverlay.style.position = "fixed";
+    countdownOverlay.style.top = "0";
+    countdownOverlay.style.left = "0";
+    countdownOverlay.style.width = "100%";
+    countdownOverlay.style.height = "100%";
+    countdownOverlay.style.backgroundColor = "rgba(0,0,0,0.7)";
+    countdownOverlay.style.display = "flex";
+    countdownOverlay.style.justifyContent = "center";
+    countdownOverlay.style.alignItems = "center";
+    countdownOverlay.style.zIndex = "2000";
+    countdownOverlay.style.fontSize = "120px";
+    countdownOverlay.style.color = "white";
+    countdownOverlay.style.fontWeight = "bold";
+    countdownOverlay.style.textShadow = "0 0 20px #3498db";
+
+    document.body.appendChild(countdownOverlay);
+
+    let count = seconds;
+    countdownOverlay.textContent = count;
+
+    const timer = setInterval(() => {
+      count--;
+      if (count <= 0) {
+        clearInterval(timer);
+        document.body.removeChild(countdownOverlay);
+        resolve();
+      } else {
+        countdownOverlay.textContent = count;
+      }
+    }, 1000);
+  });
 }
