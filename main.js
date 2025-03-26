@@ -85,10 +85,22 @@ app.on("activate", () => {
 ipcMain.handle("get-sources", async () => {
   try {
     const sources = await desktopCapturer.getSources({
-      types: ["screen", "window"],
+      types: ["screen"],
       thumbnailSize: { width: 100, height: 100 },
-      fetchWindowIcons: true,
     });
+
+    // 调试日志
+    console.log(
+      "获取到的屏幕源:",
+      sources.map((s) => ({
+        id: s.id,
+        name: s.name,
+        thumbnailSize: s.thumbnail
+          ? `${s.thumbnail.getSize().width}x${s.thumbnail.getSize().height}`
+          : "无缩略图",
+      }))
+    );
+
     return sources;
   } catch (error) {
     console.error("获取屏幕源出错：", error);

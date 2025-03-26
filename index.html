@@ -126,6 +126,41 @@
         color: #7f8c8d;
       }
 
+      .screen-selector {
+        display: none;
+        margin: 15px 0;
+      }
+
+      .screen-option {
+        display: inline-block;
+        margin: 5px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        border-radius: 4px;
+        transition: all 0.2s;
+      }
+
+      .screen-option:hover {
+        border-color: #3498db;
+      }
+
+      .screen-option.selected {
+        border-color: #2ecc71;
+      }
+
+      .screen-thumbnail {
+        width: 150px;
+        height: 100px;
+        object-fit: contain;
+        background: #eee;
+      }
+
+      .screen-name {
+        text-align: center;
+        margin-top: 5px;
+        font-size: 14px;
+      }
+
       .timer {
         font-size: 24px;
         font-weight: bold;
@@ -155,6 +190,12 @@
 
       <div class="status" id="status">
         准备就绪。点击"开始录制"按钮开始全屏录制。
+      </div>
+
+      <div class="screen-selector" id="screenSelector">
+        <h3>选择要录制的屏幕</h3>
+        <div id="screenOptions"></div>
+        <button id="confirmScreenBtn" style="margin-top: 15px">确认选择</button>
       </div>
     </div>
 

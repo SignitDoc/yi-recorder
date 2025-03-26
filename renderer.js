@@ -6,6 +6,11 @@ const timerElement = document.getElementById("timer");
 const statusElement = document.getElementById("status");
 const recordAudioCheckbox = document.getElementById("recordAudio");
 const loadingOverlay = document.getElementById("loadingOverlay");
+const screenSelector = document.getElementById("screenSelector");
+const screenOptions = document.getElementById("screenOptions");
+const confirmScreenBtn = document.getElementById("confirmScreenBtn");
+
+let selectedSource = null;
 
 // 录制状态变量
 let mediaRecorder;
@@ -33,24 +38,65 @@ document.addEventListener("DOMContentLoaded", () => {
 // 启动录制
 async function startRecording() {
   try {
-    statusElement.textContent = "准备开始录制...";
+    statusElement.textContent = "正在获取屏幕源...";
 
-    // 显示倒计时
-    await showCountdown(3);
-
-    statusElement.textContent = "正在启动录制...";
-
-    // 获取可用的屏幕源（全屏）
-    console.log("开始获取屏幕源");
+    // 获取可用的屏幕源
     const sources = await window.electronAPI.captureScreen();
-    console.log("获取到的屏幕源:", sources);
-
     if (!sources || sources.length === 0) {
       throw new Error("找不到可用的屏幕源");
     }
 
-    // 捕获整个屏幕（第一个屏幕源）
-    const source = sources[0];
+    // 如果只有一个屏幕源，直接使用
+    if (sources.length === 1) {
+      selectedSource = sources[0];
+    } else {
+      // 显示屏幕选择界面
+      recordBtn.disabled = true;
+      screenSelector.style.display = "block";
+      statusElement.textContent = "请选择要录制的屏幕";
+
+      // 清空选项
+      screenOptions.innerHTML = "";
+
+      // 添加屏幕选项
+      sources.forEach((source) => {
+        const option = document.createElement("div");
+        option.className = "screen-option";
+        const img = document.createElement("img");
+        img.className = "screen-thumbnail";
+        // 使用更大的缩略图尺寸并保留原始NativeImage
+        const thumbnail = source.thumbnail.resize({ width: 200 });
+        img.src = thumbnail.toDataURL();
+        option.appendChild(img);
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "screen-name";
+        nameDiv.textContent = source.name;
+        option.appendChild(nameDiv);
+        option.addEventListener("click", () => {
+          document.querySelectorAll(".screen-option").forEach((el) => {
+            el.classList.remove("selected");
+          });
+          option.classList.add("selected");
+          selectedSource = source;
+        });
+        screenOptions.appendChild(option);
+      });
+
+      // 等待用户选择
+      await new Promise((resolve) => {
+        confirmScreenBtn.onclick = () => {
+          if (!selectedSource) {
+            statusElement.textContent = "请先选择一个屏幕";
+            return;
+          }
+          screenSelector.style.display = "none";
+          resolve();
+        };
+      });
+    }
+
+    statusElement.textContent = "准备开始录制...";
+    await showCountdown(3);
 
     // 设置媒体约束
     const constraints = {
@@ -64,7 +110,7 @@ async function startRecording() {
       video: {
         mandatory: {
           chromeMediaSource: "desktop",
-          chromeMediaSourceId: source.id,
+          chromeMediaSourceId: selectedSource.id,
         },
       },
     };
