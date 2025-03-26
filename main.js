@@ -84,24 +84,67 @@ app.on("activate", () => {
 // 处理获取屏幕源
 ipcMain.handle("get-sources", async () => {
   try {
+    const { screen } = require("electron");
+    const displays = screen.getAllDisplays();
     const sources = await desktopCapturer.getSources({
       types: ["screen"],
       thumbnailSize: { width: 100, height: 100 },
     });
 
-    // 调试日志
+    // 将显示器信息与屏幕源匹配
+    // 调试日志 - 显示所有显示器信息
     console.log(
-      "获取到的屏幕源:",
-      sources.map((s) => ({
-        id: s.id,
-        name: s.name,
-        thumbnailSize: s.thumbnail
-          ? `${s.thumbnail.getSize().width}x${s.thumbnail.getSize().height}`
-          : "无缩略图",
+      "所有显示器:",
+      displays.map((d) => ({
+        id: d.id,
+        bounds: d.bounds,
+        size: d.size,
+        workArea: d.workArea,
       }))
     );
 
-    return sources;
+    // 调试日志 - 显示所有屏幕源
+    console.log(
+      "所有屏幕源:",
+      sources.map((s) => ({
+        id: s.id,
+        name: s.name,
+        thumbnailSize: s.thumbnail.getSize(),
+      }))
+    );
+
+    const result = sources.map((source) => {
+      // 尝试多种方式匹配显示器
+      // 根据屏幕源ID中的索引匹配显示器
+      const screenIndex = parseInt(source.id.split(":")[1]);
+      const display =
+        displays[screenIndex] ||
+        // 回退方案：通过尺寸比例匹配
+        displays.find((d) => {
+          const thumbSize = source.thumbnail.getSize();
+          const ratio = thumbSize.width / thumbSize.height;
+          const displayRatio = d.size.width / d.size.height;
+          return Math.abs(ratio - displayRatio) < 0.1;
+        });
+
+      return {
+        ...source,
+        displaySize: display
+          ? `${display.size.width}x${display.size.height}`
+          : `未知分辨率 (源ID: ${source.id})`,
+      };
+    });
+
+    console.log(
+      "获取到的屏幕源:",
+      result.map((r) => ({
+        id: r.id,
+        name: r.name,
+        displaySize: r.displaySize,
+      }))
+    );
+
+    return result;
   } catch (error) {
     console.error("获取屏幕源出错：", error);
     throw error;

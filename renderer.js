@@ -62,12 +62,10 @@ async function startRecording() {
       sources.forEach((source) => {
         const option = document.createElement("div");
         option.className = "screen-option";
-        const img = document.createElement("img");
-        img.className = "screen-thumbnail";
-        // 使用更大的缩略图尺寸并保留原始NativeImage
-        const thumbnail = source.thumbnail.resize({ width: 200 });
-        img.src = thumbnail.toDataURL();
-        option.appendChild(img);
+        const previewBox = document.createElement("div");
+        previewBox.className = "screen-preview-box";
+        previewBox.textContent = source.displaySize || "未知分辨率";
+        option.appendChild(previewBox);
         const nameDiv = document.createElement("div");
         nameDiv.className = "screen-name";
         nameDiv.textContent = source.name;
