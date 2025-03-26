@@ -4,6 +4,93 @@
     <meta charset="UTF-8" />
     <title>易录屏</title>
     <style>
+      /* Modal styles */
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+      }
+
+      .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      .modal-title {
+        font-size: 20px;
+        margin-bottom: 15px;
+        color: #2c3e50;
+      }
+
+      .screen-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .screen-item {
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .screen-item:hover {
+        border-color: #3498db;
+        background-color: #f8f9fa;
+      }
+
+      .screen-item.selected {
+        border-color: #3498db;
+        background-color: #e8f4fc;
+      }
+
+      .screen-thumbnail {
+        width: 100%;
+        height: 120px;
+        background-color: #eee;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      .screen-thumbnail img {
+        max-width: 100%;
+        max-height: 100%;
+      }
+
+      .screen-name {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .screen-info {
+        font-size: 12px;
+        color: #7f8c8d;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
       /* Loading overlay styles */
       .overlay {
         position: fixed;
@@ -126,46 +213,6 @@
         color: #7f8c8d;
       }
 
-      .screen-selector {
-        display: none;
-        margin: 15px 0;
-      }
-
-      .screen-option {
-        display: inline-block;
-        margin: 5px;
-        cursor: pointer;
-        border: 2px solid transparent;
-        border-radius: 4px;
-        transition: all 0.2s;
-      }
-
-      .screen-option:hover {
-        border-color: #3498db;
-      }
-
-      .screen-option.selected {
-        border-color: #2ecc71;
-      }
-
-      .screen-preview-box {
-        width: 150px;
-        height: 100px;
-        background: #f0f0f0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 14px;
-        color: #666;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-      }
-
-      .screen-name {
-        text-align: center;
-        margin-top: 5px;
-        font-size: 14px;
-      }
 
       .timer {
         font-size: 24px;
@@ -176,6 +223,18 @@
     </style>
   </head>
   <body>
+    <!-- Screen selection modal -->
+    <div class="modal" id="screenModal">
+      <div class="modal-content">
+        <div class="modal-title">请选择要录制的屏幕</div>
+        <div class="screen-list" id="screenList"></div>
+        <div class="modal-actions">
+          <button id="cancelScreenSelect">取消</button>
+          <button id="confirmScreenSelect" disabled>确认选择</button>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
       <h1>易录屏</h1>
 
@@ -198,11 +257,6 @@
         准备就绪。点击"开始录制"按钮开始全屏录制。
       </div>
 
-      <div class="screen-selector" id="screenSelector">
-        <h3>选择要录制的屏幕</h3>
-        <div id="screenOptions"></div>
-        <button id="confirmScreenBtn" style="margin-top: 15px">确认选择</button>
-      </div>
     </div>
 
     <!-- Loading overlay -->

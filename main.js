@@ -45,14 +45,6 @@ function createWindow() {
     icon: path.join(__dirname, "assets/logo.ico"),
   });
 
-  // 启用系统音频录制
-  try {
-    mainWindow.webContents.audioCapturerStartRecording();
-    console.log("系统音频录制功能已启用");
-  } catch (error) {
-    console.error("启用系统音频录制失败:", error);
-  }
-
   mainWindow.loadFile("index.html");
 
   // 开发时打开开发者工具
@@ -92,34 +84,9 @@ ipcMain.handle("get-sources", async () => {
     });
 
     // 将显示器信息与屏幕源匹配
-    // 调试日志 - 显示所有显示器信息
-    console.log(
-      "所有显示器:",
-      displays.map((d) => ({
-        id: d.id,
-        bounds: d.bounds,
-        size: d.size,
-        workArea: d.workArea,
-      }))
-    );
-
-    // 调试日志 - 显示所有屏幕源
-    console.log(
-      "所有屏幕源:",
-      sources.map((s) => ({
-        id: s.id,
-        name: s.name,
-        thumbnailSize: s.thumbnail.getSize(),
-      }))
-    );
-
     const result = sources.map((source) => {
-      // 尝试多种方式匹配显示器
-      // 根据屏幕源ID中的索引匹配显示器
       const screenIndex = parseInt(source.id.split(":")[1]);
-      const display =
-        displays[screenIndex] ||
-        // 回退方案：通过尺寸比例匹配
+      const display = displays[screenIndex] || 
         displays.find((d) => {
           const thumbSize = source.thumbnail.getSize();
           const ratio = thumbSize.width / thumbSize.height;
@@ -134,15 +101,6 @@ ipcMain.handle("get-sources", async () => {
           : `未知分辨率 (源ID: ${source.id})`,
       };
     });
-
-    console.log(
-      "获取到的屏幕源:",
-      result.map((r) => ({
-        id: r.id,
-        name: r.name,
-        displaySize: r.displaySize,
-      }))
-    );
 
     return result;
   } catch (error) {

@@ -6,10 +6,6 @@ const timerElement = document.getElementById("timer");
 const statusElement = document.getElementById("status");
 const recordAudioCheckbox = document.getElementById("recordAudio");
 const loadingOverlay = document.getElementById("loadingOverlay");
-const screenSelector = document.getElementById("screenSelector");
-const screenOptions = document.getElementById("screenOptions");
-const confirmScreenBtn = document.getElementById("confirmScreenBtn");
-
 let selectedSource = null;
 
 // 录制状态变量
@@ -46,51 +42,19 @@ async function startRecording() {
       throw new Error("找不到可用的屏幕源");
     }
 
-    // 如果只有一个屏幕源，直接使用
+    // 只有一个屏幕时自动选择，多个屏幕时显示前端对话框
+    recordBtn.disabled = true;
     if (sources.length === 1) {
+      statusElement.textContent = "检测到单个屏幕，自动选择...";
       selectedSource = sources[0];
     } else {
-      // 显示屏幕选择界面
-      recordBtn.disabled = true;
-      screenSelector.style.display = "block";
       statusElement.textContent = "请选择要录制的屏幕";
-
-      // 清空选项
-      screenOptions.innerHTML = "";
-
-      // 添加屏幕选项
-      sources.forEach((source) => {
-        const option = document.createElement("div");
-        option.className = "screen-option";
-        const previewBox = document.createElement("div");
-        previewBox.className = "screen-preview-box";
-        previewBox.textContent = source.displaySize || "未知分辨率";
-        option.appendChild(previewBox);
-        const nameDiv = document.createElement("div");
-        nameDiv.className = "screen-name";
-        nameDiv.textContent = source.name;
-        option.appendChild(nameDiv);
-        option.addEventListener("click", () => {
-          document.querySelectorAll(".screen-option").forEach((el) => {
-            el.classList.remove("selected");
-          });
-          option.classList.add("selected");
-          selectedSource = source;
-        });
-        screenOptions.appendChild(option);
-      });
-
-      // 等待用户选择
-      await new Promise((resolve) => {
-        confirmScreenBtn.onclick = () => {
-          if (!selectedSource) {
-            statusElement.textContent = "请先选择一个屏幕";
-            return;
-          }
-          screenSelector.style.display = "none";
-          resolve();
-        };
-      });
+      selectedSource = await showScreenSelectionDialog(sources);
+      if (!selectedSource) {
+        statusElement.textContent = "已取消屏幕选择";
+        recordBtn.disabled = false;
+        return;
+      }
     }
 
     statusElement.textContent = "准备开始录制...";
@@ -244,6 +208,60 @@ function updateTimer() {
 
 function padZero(num) {
   return num.toString().padStart(2, "0");
+}
+
+// 显示屏幕选择对话框
+function showScreenSelectionDialog(sources) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('screenModal');
+    const screenList = document.getElementById('screenList');
+    const confirmBtn = document.getElementById('confirmScreenSelect');
+    const cancelBtn = document.getElementById('cancelScreenSelect');
+    
+    // 清空并重新填充屏幕列表
+    screenList.innerHTML = '';
+    let selectedSource = null;
+
+    sources.forEach(source => {
+      const item = document.createElement('div');
+      item.className = 'screen-item';
+      item.innerHTML = `
+        <div class="screen-thumbnail">
+          <img src="${source.thumbnail.toDataURL()}" alt="${source.name}">
+        </div>
+        <div class="screen-name">${source.name}</div>
+        <div class="screen-info">${source.display_id}</div>
+      `;
+
+      item.addEventListener('click', () => {
+        // 更新选中状态
+        document.querySelectorAll('.screen-item').forEach(el => {
+          el.classList.remove('selected');
+        });
+        item.classList.add('selected');
+        selectedSource = source;
+        confirmBtn.disabled = false;
+      });
+
+      screenList.appendChild(item);
+    });
+
+    // 确认按钮点击处理
+    confirmBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+      resolve(selectedSource);
+    }, { once: true });
+
+    // 取消按钮点击处理
+    cancelBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+      resolve(null);
+    }, { once: true });
+
+    // 显示对话框
+    modal.style.display = 'flex';
+    confirmBtn.disabled = true;
+  });
 }
 
 // 显示倒计时动画
