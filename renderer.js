@@ -226,11 +226,10 @@ function showScreenSelectionDialog(sources) {
       const item = document.createElement('div');
       item.className = 'screen-item';
       item.innerHTML = `
-        <div class="screen-thumbnail">
-          <img src="${source.thumbnail.toDataURL()}" alt="${source.name}">
+        <div class="screen-thumbnail" style="background-color: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; font-size: 14px; color: #666;">${source.displaySize}</div>
         </div>
         <div class="screen-name">${source.name}</div>
-        <div class="screen-info">${source.display_id}</div>
       `;
 
       item.addEventListener('click', () => {

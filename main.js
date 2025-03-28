@@ -82,27 +82,14 @@ ipcMain.handle("get-sources", async () => {
       types: ["screen"],
       thumbnailSize: { width: 100, height: 100 },
     });
-
-    // 将显示器信息与屏幕源匹配
-    const result = sources.map((source) => {
-      const screenIndex = parseInt(source.id.split(":")[1]);
-      const display = displays[screenIndex] || 
-        displays.find((d) => {
-          const thumbSize = source.thumbnail.getSize();
-          const ratio = thumbSize.width / thumbSize.height;
-          const displayRatio = d.size.width / d.size.height;
-          return Math.abs(ratio - displayRatio) < 0.1;
-        });
-
-      return {
-        ...source,
-        displaySize: display
-          ? `${display.size.width}x${display.size.height}`
-          : `未知分辨率 (源ID: ${source.id})`,
-      };
-    });
-
-    return result;
+    
+    sources.forEach((source,index) => {
+      source.displaySize = `${displays[index].size.width}x${displays[index].size.height}`;
+     
+      
+    })
+    
+    return sources;
   } catch (error) {
     console.error("获取屏幕源出错：", error);
     throw error;
