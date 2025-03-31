@@ -4,8 +4,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "package-win": "electron-packager . 易录屏 --platform=win32 --arch=x64 --icon=assets/logo.ico --out=dist --overwrite"
+    "build-win": "electron-builder --win --x64 --publish=never"
   },
   "keywords": [],
   "author": "",
@@ -29,13 +28,34 @@
       "icon": "assets/logo.ico",
       "target": [
         {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
           "target": "portable",
           "arch": [
             "x64"
           ]
         }
       ],
-      "artifactName": "${productName}-Portable-${version}.${ext}"
+      "artifactName": "${productName}-${version}.${ext}",
+      "sign": null,
+      "signingHashAlgorithms": null,
+      "signDlls": false,
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "易录屏",
+      "installerIcon": "assets/logo.ico",
+      "uninstallerIcon": "assets/logo.ico",
+      "installerHeaderIcon": "assets/logo.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "portable": {
       "artifactName": "${productName}-Portable-${version}.exe"
@@ -45,6 +65,10 @@
       {
         "from": "assets",
         "to": "assets"
+      },
+      {
+        "from": "node_modules/ffmpeg-static/ffmpeg.exe",
+        "to": "ffmpeg/ffmpeg.exe"
       }
     ]
   }
