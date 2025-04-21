@@ -1,20 +1,33 @@
 const { contextBridge, ipcRenderer } = require("electron");
 const electron = require("electron");
 
-console.log("简化版preload脚本已加载");
-console.log("electron对象:", typeof electron);
-console.log("electron中的desktopCapturer:", typeof electron.desktopCapturer);
+// 设置控制台输出编码
+process.env.LANG = "zh_CN.UTF-8";
+
+// 使用Buffer来确保正确的编码输出
+const logWithEncoding = (message) => {
+  if (typeof message === 'string') {
+    console.log(Buffer.from(message, 'utf8').toString());
+  } else {
+    console.log(message);
+  }
+};
+
+logWithEncoding("简化版preload脚本已加载");
+logWithEncoding("electron对象: " + typeof electron);
+logWithEncoding("electron中的desktopCapturer: " + typeof electron.desktopCapturer);
 
 contextBridge.exposeInMainWorld("electronAPI", {
   captureScreen: async () => {
-    console.log("captureScreen函数被调用");
+    logWithEncoding("captureScreen函数被调用");
     try {
       // 通过IPC调用主进程来获取屏幕源
       const sources = await ipcRenderer.invoke("get-sources");
-      console.log("屏幕源:", sources ? sources.length : 0);
+      logWithEncoding("屏幕源: " + (sources ? sources.length : 0));
       return sources;
     } catch (error) {
-      console.error("捕获屏幕时出错:", error);
+      const errorMsg = "捕获屏幕时出错: " + (error.message || error);
+      logWithEncoding(errorMsg);
       throw error;
     }
   },

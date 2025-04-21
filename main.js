@@ -12,6 +12,30 @@ const { exec } = require("child_process");
 const os = require("os");
 const ffmpegPath = require("ffmpeg-static");
 
+// 设置控制台输出编码
+process.env.LANG = "zh_CN.UTF-8";
+
+// 确保子进程使用UTF-8编码
+process.env.PYTHONIOENCODING = "UTF-8";
+
+// 创建一个帮助函数来确保正确的编码输出
+const logWithEncoding = (message) => {
+  if (typeof message === 'string') {
+    console.log(Buffer.from(message, 'utf8').toString());
+  } else {
+    console.log(message);
+  }
+};
+
+// 重写错误日志函数
+const errorWithEncoding = (message, error) => {
+  if (typeof message === 'string') {
+    console.error(Buffer.from(message, 'utf8').toString(), error);
+  } else {
+    console.error(message, error);
+  }
+};
+
 // 获取FFmpeg可执行文件路径
 function getFfmpegPath() {
   // 修复打包后的ffmpeg路径问题
@@ -37,7 +61,7 @@ function getFfmpegPath() {
     if (fs.existsSync(appPath)) {
       return appPath;
     }
-    console.log("使用默认ffmpeg路径:", ffmpegPath);
+    logWithEncoding("使用默认ffmpeg路径: " + ffmpegPath);
   }
   return ffmpegPath;
 }
@@ -50,8 +74,8 @@ let mainWindow;
 function createWindow() {
   // 检查preload脚本是否存在
   const preloadPath = path.join(__dirname, "preload.js");
-  console.log("Preload脚本路径:", preloadPath);
-  console.log("Preload脚本存在:", fs.existsSync(preloadPath));
+  logWithEncoding("Preload脚本路径: " + preloadPath);
+  logWithEncoding("Preload脚本存在: " + fs.existsSync(preloadPath));
 
   mainWindow = new BrowserWindow({
     width: 600,
@@ -114,7 +138,7 @@ ipcMain.handle("get-sources", async () => {
 
     return sources;
   } catch (error) {
-    console.error("获取屏幕源出错：", error);
+    errorWithEncoding("获取屏幕源出错：", error);
     throw error;
   }
 });
@@ -133,14 +157,14 @@ ipcMain.on("save-recording", async (event, buffer) => {
     const tempWebmPath = path.join(tempDir, `temp-${Date.now()}.webm`);
     const tempMp4Path = path.join(tempDir, `temp-${Date.now()}.mp4`);
 
-    console.log("临时WebM路径:", tempWebmPath);
-    console.log("临时MP4路径:", tempMp4Path);
-    console.log("最终目标路径:", filePath);
+    logWithEncoding("临时WebM路径: " + tempWebmPath);
+    logWithEncoding("临时MP4路径: " + tempMp4Path);
+    logWithEncoding("最终目标路径: " + filePath);
 
     // 先保存WebM文件
     fs.writeFile(tempWebmPath, buffer, async (err) => {
       if (err) {
-        console.error("保存临时WebM文件失败:", err);
+        errorWithEncoding("保存临时WebM文件失败:", err);
         event.reply("save-recording-response", {
           success: false,
           message: "保存失败：" + err.message,
@@ -151,7 +175,7 @@ ipcMain.on("save-recording", async (event, buffer) => {
       try {
         // 获取并验证FFmpeg路径
         const ffmpegPath = getFfmpegPath();
-        console.log("使用的FFmpeg路径:", ffmpegPath);
+        logWithEncoding("使用的FFmpeg路径: " + ffmpegPath);
 
         if (!fs.existsSync(ffmpegPath)) {
           throw new Error("找不到FFmpeg可执行文件: " + ffmpegPath);
@@ -160,12 +184,13 @@ ipcMain.on("save-recording", async (event, buffer) => {
         // 使用FFmpeg转换WebM为MP4
         await new Promise((resolve, reject) => {
           const command = `"${ffmpegPath}" -i "${tempWebmPath}" -c:v libx264 -preset medium -crf 23 "${tempMp4Path}"`;
-          console.log("执行的FFmpeg命令:", command);
+          logWithEncoding("执行的FFmpeg命令: " + command);
 
-          exec(command, (error, stdout, stderr) => {
+          // 设置子进程的编码为UTF-8
+          exec(command, { encoding: 'utf8', env: { ...process.env, PYTHONIOENCODING: 'UTF-8', LANG: 'zh_CN.UTF-8' } }, (error, stdout, stderr) => {
             if (error) {
-              console.error("FFmpeg错误:", error);
-              console.error("FFmpeg输出:", stderr);
+              errorWithEncoding("FFmpeg错误:", error);
+              errorWithEncoding("FFmpeg输出:", stderr);
               reject(new Error(`FFmpeg转换失败: ${error.message}`));
               return;
             }
@@ -185,7 +210,7 @@ ipcMain.on("save-recording", async (event, buffer) => {
           filePath,
         });
       } catch (error) {
-        console.error("转换视频格式失败:", error);
+        errorWithEncoding("转换视频格式失败:", error);
         // 清理临时文件
         try {
           if (fs.existsSync(tempWebmPath)) {
@@ -195,7 +220,7 @@ ipcMain.on("save-recording", async (event, buffer) => {
             fs.unlinkSync(tempMp4Path);
           }
         } catch (cleanupError) {
-          console.error("清理临时文件失败:", cleanupError);
+          errorWithEncoding("清理临时文件失败:", cleanupError);
         }
 
         // 提供更详细的错误信息
