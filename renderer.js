@@ -7,6 +7,8 @@ const timerElement = document.getElementById("timer");
 const statusElement = document.getElementById("status");
 const recordAudioCheckbox = document.getElementById("recordAudio");
 const loadingOverlay = document.getElementById("loadingOverlay");
+const videoPreviewContainer = document.getElementById("videoPreviewContainer");
+const videoPreview = document.getElementById("videoPreview");
 let selectedSource = null;
 
 // 录制状态变量
@@ -40,6 +42,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // 启动录制
 async function startRecording() {
   try {
+    // 隐藏视频预览
+    videoPreviewContainer.style.display = "none";
+
     statusElement.textContent = "正在获取屏幕源...";
 
     // 获取可用的屏幕源
@@ -220,6 +225,33 @@ function stopRecording() {
   recordBtn.textContent = "开始录制";
   pauseBtn.textContent = "暂停录制";
   isPaused = false;
+
+  // 创建并显示视频预览
+  createVideoPreview();
+}
+
+// 创建视频预览
+function createVideoPreview() {
+  if (!recordedChunks.length) {
+    return;
+  }
+
+  // 创建视频Blob
+  const blob = new Blob(recordedChunks, { type: "video/webm" });
+
+  // 创建视频URL
+  const videoURL = URL.createObjectURL(blob);
+
+  // 设置视频源
+  videoPreview.src = videoURL;
+
+  // 显示视频预览容器
+  videoPreviewContainer.style.display = "block";
+
+  // 视频加载完成后自动播放
+  videoPreview.onloadedmetadata = () => {
+    videoPreview.play();
+  };
 }
 
 // 保存录制
@@ -231,6 +263,9 @@ function saveRecording() {
 
   statusElement.textContent = "正在处理录制内容，请稍候...";
   loadingOverlay.style.display = "flex";
+
+  // 隐藏视频预览
+  videoPreviewContainer.style.display = "none";
 
   // 合并所有录制的片段
   const blob = new Blob(recordedChunks, { type: "video/webm" });
@@ -257,6 +292,15 @@ function handleSaveResponse(response) {
     // 清除录制的数据
     recordedChunks = [];
     saveBtn.disabled = true;
+
+    // 清除视频预览
+    videoPreview.src = "";
+    videoPreviewContainer.style.display = "none";
+
+    // 释放视频URL资源
+    if (videoPreview.src) {
+      URL.revokeObjectURL(videoPreview.src);
+    }
   } else {
     statusElement.textContent = response.message;
   }

@@ -243,6 +243,29 @@
         margin: 10px 0;
         color: #e74c3c;
       }
+
+      /* Video preview styles */
+      .video-preview-container {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+      }
+
+      .video-preview-container h3 {
+        margin-top: 0;
+        color: #2c3e50;
+        font-size: 18px;
+      }
+
+      #videoPreview {
+        width: 100%;
+        max-width: 640px;
+        height: auto;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
     </style>
   </head>
   <body>
@@ -279,6 +302,12 @@
 
       <div class="status" id="status">
         准备就绪。点击"开始录制"按钮开始全屏录制。
+      </div>
+
+      <!-- 视频预览区域 -->
+      <div class="video-preview-container" id="videoPreviewContainer" style="display: none;">
+        <h3>录制预览</h3>
+        <video id="videoPreview" controls></video>
       </div>
     </div>
 
