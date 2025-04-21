@@ -215,6 +215,22 @@
         background-color: #c0392b;
       }
 
+      #pauseBtn {
+        background-color: #f39c12;
+      }
+
+      #pauseBtn:hover {
+        background-color: #d35400;
+      }
+
+      #pauseBtn.paused {
+        background-color: #2ecc71;
+      }
+
+      #pauseBtn.paused:hover {
+        background-color: #27ae60;
+      }
+
       .status {
         margin-top: 10px;
         padding: 10px;
@@ -254,6 +270,7 @@
 
       <div class="controls">
         <button id="recordBtn">开始录制</button>
+        <button id="pauseBtn" disabled>暂停录制</button>
         <button id="stopBtn" disabled>停止录制</button>
         <button id="saveBtn" disabled>保存录制</button>
       </div>

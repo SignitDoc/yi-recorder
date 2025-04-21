@@ -1,5 +1,6 @@
 // DOM元素
 const recordBtn = document.getElementById("recordBtn");
+const pauseBtn = document.getElementById("pauseBtn");
 const stopBtn = document.getElementById("stopBtn");
 const saveBtn = document.getElementById("saveBtn");
 const timerElement = document.getElementById("timer");
@@ -13,6 +14,10 @@ let mediaRecorder;
 let recordedChunks = [];
 let stream;
 let startTime;
+let pausedTime = 0;
+let totalPausedTime = 0;
+let lastPauseTime = 0;
+let isPaused = false;
 let timerInterval;
 
 // 初始化
@@ -24,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   recordBtn.addEventListener("click", startRecording);
+  pauseBtn.addEventListener("click", togglePauseRecording);
   stopBtn.addEventListener("click", stopRecording);
   saveBtn.addEventListener("click", saveRecording);
 
@@ -108,11 +114,16 @@ async function startRecording() {
 
     // 更新UI状态
     recordBtn.disabled = true;
+    pauseBtn.disabled = false;
     stopBtn.disabled = false;
     saveBtn.disabled = true; // 录制中禁用保存按钮
     recordAudioCheckbox.disabled = true;
     recordBtn.classList.add("recording");
     recordBtn.textContent = "正在录制";
+    pauseBtn.textContent = "暂停录制";
+    pauseBtn.classList.remove("paused");
+    isPaused = false;
+    totalPausedTime = 0;
     statusElement.textContent = `正在录制屏幕${
       recordAudioCheckbox.checked ? "和系统声音" : ""
     }...`;
@@ -126,6 +137,69 @@ async function startRecording() {
   }
 }
 
+// 暂停/继续录制
+function togglePauseRecording() {
+  if (!mediaRecorder || mediaRecorder.state === "inactive") {
+    return;
+  }
+
+  if (isPaused) {
+    // 继续录制
+    resumeRecording();
+  } else {
+    // 暂停录制
+    pauseRecording();
+  }
+}
+
+// 暂停录制
+function pauseRecording() {
+  if (!mediaRecorder || mediaRecorder.state !== "recording") {
+    return;
+  }
+
+  // 暂停 MediaRecorder
+  mediaRecorder.pause();
+
+  // 记录暂停时间
+  lastPauseTime = Date.now();
+
+  // 暂停计时器
+  stopTimer();
+
+  // 更新UI状态
+  pauseBtn.textContent = "继续录制";
+  pauseBtn.classList.add("paused");
+  statusElement.textContent = "录制已暂停";
+  isPaused = true;
+}
+
+// 继续录制
+function resumeRecording() {
+  if (!mediaRecorder || mediaRecorder.state !== "paused") {
+    return;
+  }
+
+  // 继续 MediaRecorder
+  mediaRecorder.resume();
+
+  // 计算暂停时间
+  const currentTime = Date.now();
+  const pauseDuration = currentTime - lastPauseTime;
+  totalPausedTime += pauseDuration;
+
+  // 继续计时器
+  startTimer();
+
+  // 更新UI状态
+  pauseBtn.textContent = "暂停录制";
+  pauseBtn.classList.remove("paused");
+  statusElement.textContent = `继续录制屏幕${
+    recordAudioCheckbox.checked ? "和系统声音" : ""
+  }...`;
+  isPaused = false;
+}
+
 // 停止录制
 function stopRecording() {
   if (!mediaRecorder || mediaRecorder.state === "inactive") {
@@ -137,11 +211,15 @@ function stopRecording() {
 
   // 更新UI状态
   recordBtn.disabled = false;
+  pauseBtn.disabled = true;
   stopBtn.disabled = true;
   saveBtn.disabled = false;
   recordAudioCheckbox.disabled = false;
   recordBtn.classList.remove("recording");
+  pauseBtn.classList.remove("paused");
   recordBtn.textContent = "开始录制";
+  pauseBtn.textContent = "暂停录制";
+  isPaused = false;
 }
 
 // 保存录制
@@ -186,7 +264,10 @@ function handleSaveResponse(response) {
 
 // 计时器功能
 function startTimer() {
-  startTime = Date.now();
+  if (!isPaused) {
+    // 如果是第一次开始录制
+    startTime = Date.now();
+  }
   updateTimer();
   timerInterval = setInterval(updateTimer, 1000);
 }
@@ -196,7 +277,10 @@ function stopTimer() {
 }
 
 function updateTimer() {
-  const elapsedTime = Date.now() - startTime;
+  // 计算实际录制时间，减去暂停的时间
+  const currentTime = Date.now();
+  const elapsedTime = currentTime - startTime - totalPausedTime;
+
   const seconds = Math.floor((elapsedTime / 1000) % 60);
   const minutes = Math.floor((elapsedTime / (1000 * 60)) % 60);
   const hours = Math.floor(elapsedTime / (1000 * 60 * 60));
@@ -217,7 +301,7 @@ function showScreenSelectionDialog(sources) {
     const screenList = document.getElementById('screenList');
     const confirmBtn = document.getElementById('confirmScreenSelect');
     const cancelBtn = document.getElementById('cancelScreenSelect');
-    
+
     // 清空并重新填充屏幕列表
     screenList.innerHTML = '';
     let selectedSource = null;
