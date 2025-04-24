@@ -42,4 +42,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   minimizeWindow: () => ipcRenderer.send("minimize-window"),
+
+  // 显示主窗口
+  showWindow: () => ipcRenderer.send("show-window"),
 });

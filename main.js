@@ -252,3 +252,11 @@ ipcMain.on("minimize-window", () => {
     mainWindow.minimize();
   }
 });
+
+// 处理显示窗口请求
+ipcMain.on("show-window", () => {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});

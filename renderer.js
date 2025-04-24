@@ -6,6 +6,7 @@ const saveBtn = document.getElementById("saveBtn");
 const timerElement = document.getElementById("timer");
 const statusElement = document.getElementById("status");
 const recordAudioCheckbox = document.getElementById("recordAudio");
+const maxDurationInput = document.getElementById("maxDuration");
 const loadingOverlay = document.getElementById("loadingOverlay");
 const videoPreviewContainer = document.getElementById("videoPreviewContainer");
 const videoPreview = document.getElementById("videoPreview");
@@ -21,6 +22,8 @@ let totalPausedTime = 0;
 let lastPauseTime = 0;
 let isPaused = false;
 let timerInterval;
+let maxDurationMs = 0; // 最大录制时长（毫秒）
+let maxDurationTimer = null; // 最大录制时长定时器
 
 // 初始化
 document.addEventListener("DOMContentLoaded", () => {
@@ -44,6 +47,16 @@ async function startRecording() {
   try {
     // 隐藏视频预览
     videoPreviewContainer.style.display = "none";
+
+    // 获取最大录制时长设置（分钟）
+    const maxDurationMinutes = parseInt(maxDurationInput.value, 10) || 0;
+    maxDurationMs = maxDurationMinutes * 60 * 1000; // 转换为毫秒
+
+    // 清除之前的最大时长定时器（如果有）
+    if (maxDurationTimer) {
+      clearTimeout(maxDurationTimer);
+      maxDurationTimer = null;
+    }
 
     statusElement.textContent = "正在获取屏幕源...";
 
@@ -117,21 +130,42 @@ async function startRecording() {
     mediaRecorder.start(100);
     startTimer();
 
+    // 设置最大录制时长定时器（如果设置了最大时长）
+    if (maxDurationMs > 0) {
+      maxDurationTimer = setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          // 显示应用窗口
+          window.electronAPI.showWindow();
+
+          // 停止录制
+          stopRecording();
+
+          // 提示用户已达到最大录制时长
+          statusElement.textContent = `已达到最大录制时长 ${maxDurationMinutes} 分钟，录制已自动停止。`;
+        }
+      }, maxDurationMs);
+    }
+
     // 更新UI状态
     recordBtn.disabled = true;
     pauseBtn.disabled = false;
     stopBtn.disabled = false;
     saveBtn.disabled = true; // 录制中禁用保存按钮
     recordAudioCheckbox.disabled = true;
+    maxDurationInput.disabled = true; // 录制中禁用最大时长设置
     recordBtn.classList.add("recording");
     recordBtn.textContent = "正在录制";
     pauseBtn.textContent = "暂停录制";
     pauseBtn.classList.remove("paused");
     isPaused = false;
     totalPausedTime = 0;
-    statusElement.textContent = `正在录制屏幕${
-      recordAudioCheckbox.checked ? "和系统声音" : ""
-    }...`;
+
+    // 更新状态信息，包括最大录制时长
+    let statusText = `正在录制屏幕${recordAudioCheckbox.checked ? "和系统声音" : ""}`;
+    if (maxDurationMs > 0) {
+      statusText += `，最大录制时长: ${maxDurationMinutes} 分钟`;
+    }
+    statusElement.textContent = statusText + "...";
 
     // 最小化窗口并开始录制
     window.electronAPI.minimizeWindow();
@@ -139,6 +173,7 @@ async function startRecording() {
     console.error("启动录制时出错:", error);
     statusElement.textContent = `录制失败: ${error.message}`;
     recordAudioCheckbox.disabled = false;
+    maxDurationInput.disabled = false;
   }
 }
 
@@ -172,6 +207,16 @@ function pauseRecording() {
   // 暂停计时器
   stopTimer();
 
+  // 如果设置了最大录制时长，暂停定时器
+  if (maxDurationTimer) {
+    clearTimeout(maxDurationTimer);
+    // 计算剩余时间
+    const elapsedTime = Date.now() - startTime - totalPausedTime;
+    const remainingTime = Math.max(0, maxDurationMs - elapsedTime);
+    // 保存剩余时间
+    maxDurationMs = remainingTime;
+  }
+
   // 更新UI状态
   pauseBtn.textContent = "继续录制";
   pauseBtn.classList.add("paused");
@@ -196,12 +241,35 @@ function resumeRecording() {
   // 继续计时器
   startTimer();
 
+  // 如果设置了最大录制时长，重新设置定时器
+  if (maxDurationMs > 0) {
+    maxDurationTimer = setTimeout(() => {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        // 显示应用窗口
+        window.electronAPI.showWindow();
+
+        // 停止录制
+        stopRecording();
+
+        // 提示用户已达到最大录制时长
+        const maxDurationMinutes = Math.ceil(maxDurationMs / (60 * 1000));
+        statusElement.textContent = `已达到最大录制时长 ${maxDurationMinutes} 分钟，录制已自动停止。`;
+      }
+    }, maxDurationMs);
+  }
+
   // 更新UI状态
   pauseBtn.textContent = "暂停录制";
   pauseBtn.classList.remove("paused");
-  statusElement.textContent = `继续录制屏幕${
-    recordAudioCheckbox.checked ? "和系统声音" : ""
-  }...`;
+
+  // 更新状态信息，包括最大录制时长
+  let statusText = `继续录制屏幕${recordAudioCheckbox.checked ? "和系统声音" : ""}`;
+  if (maxDurationMs > 0) {
+    const maxDurationMinutes = Math.ceil(maxDurationMs / (60 * 1000));
+    statusText += `，剩余时间: 约 ${maxDurationMinutes} 分钟`;
+  }
+  statusElement.textContent = statusText + "...";
+
   isPaused = false;
 }
 
@@ -209,6 +277,12 @@ function resumeRecording() {
 function stopRecording() {
   if (!mediaRecorder || mediaRecorder.state === "inactive") {
     return;
+  }
+
+  // 清除最大录制时长定时器
+  if (maxDurationTimer) {
+    clearTimeout(maxDurationTimer);
+    maxDurationTimer = null;
   }
 
   mediaRecorder.stop();
@@ -220,6 +294,7 @@ function stopRecording() {
   stopBtn.disabled = true;
   saveBtn.disabled = false;
   recordAudioCheckbox.disabled = false;
+  maxDurationInput.disabled = false; // 重新启用最大时长设置
   recordBtn.classList.remove("recording");
   pauseBtn.classList.remove("paused");
   recordBtn.textContent = "开始录制";
