@@ -1,350 +1,354 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>易录屏</title>
-    <style>
-      /* Modal styles */
-      .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 2000;
+
+<head>
+  <meta charset="UTF-8" />
+  <title>易录屏</title>
+  <style>
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+
+    .screen-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .screen-item {
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .screen-item:hover {
+      border-color: #3498db;
+      background-color: #f8f9fa;
+    }
+
+    .screen-item.selected {
+      border-color: #3498db;
+      background-color: #e8f4fc;
+    }
+
+    .screen-thumbnail {
+      width: 100%;
+      height: 120px;
+      background-color: #eee;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .screen-thumbnail img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .screen-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .screen-info {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Loading overlay styles */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
       }
 
-      .modal-content {
-        background-color: white;
-        padding: 20px;
-        border-radius: 8px;
-        max-width: 600px;
-        width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
+      100% {
+        transform: rotate(360deg);
       }
+    }
 
-      .modal-title {
-        font-size: 20px;
-        margin-bottom: 15px;
-        color: #2c3e50;
-      }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+      text-align: center;
+    }
 
-      .screen-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 15px;
-        margin-bottom: 20px;
-      }
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
 
-      .screen-item {
-        border: 2px solid #ddd;
-        border-radius: 4px;
-        padding: 10px;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
 
-      .screen-item:hover {
-        border-color: #3498db;
-        background-color: #f8f9fa;
-      }
+    .controls {
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
 
-      .screen-item.selected {
-        border-color: #3498db;
-        background-color: #e8f4fc;
-      }
+    .options {
+      margin: 15px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }
 
-      .screen-thumbnail {
-        width: 100%;
-        height: 120px;
-        background-color: #eee;
-        margin-bottom: 8px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
-      }
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
 
-      .screen-thumbnail img {
-        max-width: 100%;
-        max-height: 100%;
-      }
+    .checkbox-container input {
+      margin-right: 5px;
+    }
 
-      .screen-name {
-        font-weight: bold;
-        margin-bottom: 5px;
-      }
+    .max-duration-container {
+      display: flex;
+      align-items: center;
+      margin-left: 15px;
+    }
 
-      .screen-info {
-        font-size: 12px;
-        color: #7f8c8d;
-      }
+    .max-duration-container label {
+      margin-right: 8px;
+    }
 
-      .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-      }
+    .max-duration-container input {
+      width: 60px;
+      padding: 4px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-align: center;
+    }
 
-      /* Loading overlay styles */
-      .overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-      }
+    .max-duration-container .hint {
+      margin-left: 8px;
+      font-size: 12px;
+      color: #7f8c8d;
+    }
 
-      .loading-spinner {
-        width: 50px;
-        height: 50px;
-        border: 5px solid #f3f3f3;
-        border-top: 5px solid #3498db;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
 
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
+    button:hover {
+      background-color: #2980b9;
+    }
 
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 20px;
-        background-color: #f5f5f5;
-        color: #333;
-        text-align: center;
-      }
+    button:disabled {
+      background-color: #95a5a6;
+      cursor: not-allowed;
+    }
 
-      h1 {
-        color: #2c3e50;
-        margin-bottom: 20px;
-      }
+    #recordBtn {
+      background-color: #e74c3c;
+    }
 
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      }
+    #recordBtn:hover {
+      background-color: #c0392b;
+    }
 
-      .controls {
-        margin: 20px 0;
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-      }
+    #recordBtn.recording {
+      background-color: #2ecc71;
+    }
 
-      .options {
-        margin: 15px 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-      }
+    #recordBtn.recording:hover {
+      background-color: #27ae60;
+    }
 
-      .checkbox-container {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-      }
+    #cancelScreenSelect {
+      background-color: #e74c3c;
+    }
 
-      .checkbox-container input {
-        margin-right: 5px;
-      }
+    #cancelScreenSelect:hover {
+      background-color: #c0392b;
+    }
 
-      .max-duration-container {
-        display: flex;
-        align-items: center;
-        margin-left: 15px;
-      }
+    #pauseBtn {
+      background-color: #f39c12;
+    }
 
-      .max-duration-container label {
-        margin-right: 8px;
-      }
+    #pauseBtn:hover {
+      background-color: #d35400;
+    }
 
-      .max-duration-container input {
-        width: 60px;
-        padding: 4px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        text-align: center;
-      }
+    #pauseBtn.paused {
+      background-color: #2ecc71;
+    }
 
-      .max-duration-container .hint {
-        margin-left: 8px;
-        font-size: 12px;
-        color: #7f8c8d;
-      }
+    #pauseBtn.paused:hover {
+      background-color: #27ae60;
+    }
 
-      button {
-        background-color: #3498db;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        font-size: 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      color: #7f8c8d;
+    }
 
-      button:hover {
-        background-color: #2980b9;
-      }
+    .timer {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 10px 0;
+      color: #e74c3c;
+    }
 
-      button:disabled {
-        background-color: #95a5a6;
-        cursor: not-allowed;
-      }
+    /* Video preview styles */
+    .video-preview-container {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
 
-      #recordBtn {
-        background-color: #e74c3c;
-      }
+    .video-preview-container h3 {
+      margin-top: 0;
+      color: #2c3e50;
+      font-size: 18px;
+    }
 
-      #recordBtn:hover {
-        background-color: #c0392b;
-      }
+    #videoPreview {
+      width: 100%;
+      max-width: 640px;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
 
-      #recordBtn.recording {
-        background-color: #2ecc71;
-      }
+<body>
+  <!-- Screen selection modal -->
+  <div class="modal" id="screenModal">
+    <div class="modal-content">
+      <div class="modal-title">请选择要录制的屏幕</div>
+      <div class="screen-list" id="screenList"></div>
+      <div class="modal-actions">
+        <button id="cancelScreenSelect">取消</button>
+        <button id="confirmScreenSelect">确认选择</button>
+      </div>
+    </div>
+  </div>
 
-      #recordBtn.recording:hover {
-        background-color: #27ae60;
-      }
+  <div class="container">
+    <h1>易录屏</h1>
 
-      #cancelScreenSelect {
-        background-color: #e74c3c;
-      }
-
-      #cancelScreenSelect:hover {
-        background-color: #c0392b;
-      }
-
-      #pauseBtn {
-        background-color: #f39c12;
-      }
-
-      #pauseBtn:hover {
-        background-color: #d35400;
-      }
-
-      #pauseBtn.paused {
-        background-color: #2ecc71;
-      }
-
-      #pauseBtn.paused:hover {
-        background-color: #27ae60;
-      }
-
-      .status {
-        margin-top: 10px;
-        padding: 10px;
-        color: #7f8c8d;
-      }
-
-      .timer {
-        font-size: 24px;
-        font-weight: bold;
-        margin: 10px 0;
-        color: #e74c3c;
-      }
-
-      /* Video preview styles */
-      .video-preview-container {
-        margin-top: 20px;
-        padding: 15px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background-color: #f9f9f9;
-      }
-
-      .video-preview-container h3 {
-        margin-top: 0;
-        color: #2c3e50;
-        font-size: 18px;
-      }
-
-      #videoPreview {
-        width: 100%;
-        max-width: 640px;
-        height: auto;
-        border-radius: 4px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Screen selection modal -->
-    <div class="modal" id="screenModal">
-      <div class="modal-content">
-        <div class="modal-title">请选择要录制的屏幕</div>
-        <div class="screen-list" id="screenList"></div>
-        <div class="modal-actions">
-          <button id="cancelScreenSelect">取消</button>
-          <button id="confirmScreenSelect" disabled>确认选择</button>
-        </div>
+    <div class="options">
+      <label class="checkbox-container">
+        <input type="checkbox" id="recordAudio" checked />
+        录制系统声音
+      </label>
+      <div class="max-duration-container">
+        <label for="maxDuration">最大录制时长(分钟):</label>
+        <input type="number" id="maxDuration" min="0" value="60" />
+        <span class="hint">0表示无限制</span>
       </div>
     </div>
 
-    <div class="container">
-      <h1>易录屏</h1>
-
-      <div class="options">
-        <label class="checkbox-container">
-          <input type="checkbox" id="recordAudio" checked />
-          录制系统声音
-        </label>
-        <div class="max-duration-container">
-          <label for="maxDuration">最大录制时长(分钟):</label>
-          <input type="number" id="maxDuration" min="0" value="60" />
-          <span class="hint">0表示无限制</span>
-        </div>
-      </div>
-
-      <div class="controls">
-        <button id="recordBtn">开始录制</button>
-        <button id="pauseBtn" disabled>暂停录制</button>
-        <button id="stopBtn" disabled>停止录制</button>
-        <button id="saveBtn" disabled>保存录制</button>
-      </div>
-
-      <div class="timer" id="timer">00:00:00</div>
-
-      <div class="status" id="status">
-        准备就绪。点击"开始录制"按钮开始全屏录制。
-      </div>
-
-      <!-- 视频预览区域 -->
-      <div class="video-preview-container" id="videoPreviewContainer" style="display: none;">
-        <h3>录制预览</h3>
-        <video id="videoPreview" controls></video>
-      </div>
+    <div class="controls">
+      <button id="recordBtn">开始录制</button>
+      <button id="pauseBtn">暂停录制</button>
+      <button id="stopBtn">停止录制</button>
+      <button id="saveBtn">保存录制</button>
     </div>
 
-    <!-- Loading overlay -->
-    <div class="overlay" id="loadingOverlay">
-      <div class="loading-spinner"></div>
+    <div class="timer" id="timer">00:00:00</div>
+
+    <div class="status" id="status">
+      准备就绪。点击"开始录制"按钮开始全屏录制。
     </div>
 
-    <script src="renderer.js"></script>
-  </body>
+    <!-- 视频预览区域 -->
+    <div class="video-preview-container" id="videoPreviewContainer" style="display: none;">
+      <h3>录制预览</h3>
+      <video id="videoPreview" controls></video>
+    </div>
+  </div>
+
+  <!-- Loading overlay -->
+  <div class="overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+
 </html>

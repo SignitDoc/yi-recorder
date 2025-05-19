@@ -33,6 +33,12 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("可用的API:", Object.keys(window.electronAPI));
   }
 
+  // 初始化按钮状态
+  recordBtn.style.display = "inline-block"; // 显示开始录制按钮
+  pauseBtn.style.display = "none"; // 隐藏暂停录制按钮
+  stopBtn.style.display = "none"; // 隐藏停止录制按钮
+  saveBtn.style.display = "none"; // 隐藏保存录制按钮
+
   recordBtn.addEventListener("click", startRecording);
   pauseBtn.addEventListener("click", togglePauseRecording);
   stopBtn.addEventListener("click", stopRecording);
@@ -67,7 +73,7 @@ async function startRecording() {
     }
 
     // 只有一个屏幕时自动选择，多个屏幕时显示前端对话框
-    recordBtn.disabled = true;
+    recordBtn.style.display = "none"; // 隐藏开始录制按钮
     if (sources.length === 1) {
       statusElement.textContent = "检测到单个屏幕，自动选择...";
       selectedSource = sources[0];
@@ -76,7 +82,7 @@ async function startRecording() {
       selectedSource = await showScreenSelectionDialog(sources);
       if (!selectedSource) {
         statusElement.textContent = "已取消屏幕选择";
-        recordBtn.disabled = false;
+        recordBtn.style.display = "inline-block"; // 重新显示开始录制按钮
         return;
       }
     }
@@ -147,10 +153,10 @@ async function startRecording() {
     }
 
     // 更新UI状态
-    recordBtn.disabled = true;
-    pauseBtn.disabled = false;
-    stopBtn.disabled = false;
-    saveBtn.disabled = true; // 录制中禁用保存按钮
+    recordBtn.style.display = "none"; // 隐藏开始录制按钮
+    pauseBtn.style.display = "inline-block"; // 显示暂停录制按钮
+    stopBtn.style.display = "inline-block"; // 显示停止录制按钮
+    saveBtn.style.display = "none"; // 隐藏保存录制按钮
     recordAudioCheckbox.disabled = true;
     maxDurationInput.disabled = true; // 录制中禁用最大时长设置
     recordBtn.classList.add("recording");
@@ -161,7 +167,9 @@ async function startRecording() {
     totalPausedTime = 0;
 
     // 更新状态信息，包括最大录制时长
-    let statusText = `正在录制屏幕${recordAudioCheckbox.checked ? "和系统声音" : ""}`;
+    let statusText = `正在录制屏幕${
+      recordAudioCheckbox.checked ? "和系统声音" : ""
+    }`;
     if (maxDurationMs > 0) {
       statusText += `，最大录制时长: ${maxDurationMinutes} 分钟`;
     }
@@ -172,6 +180,10 @@ async function startRecording() {
   } catch (error) {
     console.error("启动录制时出错:", error);
     statusElement.textContent = `录制失败: ${error.message}`;
+    recordBtn.style.display = "inline-block"; // 重新显示开始录制按钮
+    pauseBtn.style.display = "none"; // 隐藏暂停录制按钮
+    stopBtn.style.display = "none"; // 隐藏停止录制按钮
+    saveBtn.style.display = "none"; // 隐藏保存录制按钮
     recordAudioCheckbox.disabled = false;
     maxDurationInput.disabled = false;
   }
@@ -263,7 +275,9 @@ function resumeRecording() {
   pauseBtn.classList.remove("paused");
 
   // 更新状态信息，包括最大录制时长
-  let statusText = `继续录制屏幕${recordAudioCheckbox.checked ? "和系统声音" : ""}`;
+  let statusText = `继续录制屏幕${
+    recordAudioCheckbox.checked ? "和系统声音" : ""
+  }`;
   if (maxDurationMs > 0) {
     const maxDurationMinutes = Math.ceil(maxDurationMs / (60 * 1000));
     statusText += `，剩余时间: 约 ${maxDurationMinutes} 分钟`;
@@ -289,10 +303,10 @@ function stopRecording() {
   stream.getTracks().forEach((track) => track.stop());
 
   // 更新UI状态
-  recordBtn.disabled = false;
-  pauseBtn.disabled = true;
-  stopBtn.disabled = true;
-  saveBtn.disabled = false;
+  recordBtn.style.display = "inline-block"; // 显示开始录制按钮
+  pauseBtn.style.display = "none"; // 隐藏暂停录制按钮
+  stopBtn.style.display = "none"; // 隐藏停止录制按钮
+  saveBtn.style.display = "inline-block"; // 显示保存录制按钮
   recordAudioCheckbox.disabled = false;
   maxDurationInput.disabled = false; // 重新启用最大时长设置
   recordBtn.classList.remove("recording");
@@ -366,7 +380,7 @@ function handleSaveResponse(response) {
     statusElement.textContent = `${response.message}：${response.filePath}`;
     // 清除录制的数据
     recordedChunks = [];
-    saveBtn.disabled = true;
+    saveBtn.style.display = "none"; // 隐藏保存录制按钮
 
     // 清除视频预览
     videoPreview.src = "";
@@ -416,18 +430,18 @@ function padZero(num) {
 // 显示屏幕选择对话框
 function showScreenSelectionDialog(sources) {
   return new Promise((resolve) => {
-    const modal = document.getElementById('screenModal');
-    const screenList = document.getElementById('screenList');
-    const confirmBtn = document.getElementById('confirmScreenSelect');
-    const cancelBtn = document.getElementById('cancelScreenSelect');
+    const modal = document.getElementById("screenModal");
+    const screenList = document.getElementById("screenList");
+    const confirmBtn = document.getElementById("confirmScreenSelect");
+    const cancelBtn = document.getElementById("cancelScreenSelect");
 
     // 清空并重新填充屏幕列表
-    screenList.innerHTML = '';
+    screenList.innerHTML = "";
     let selectedSource = null;
 
-    sources.forEach(source => {
-      const item = document.createElement('div');
-      item.className = 'screen-item';
+    sources.forEach((source) => {
+      const item = document.createElement("div");
+      item.className = "screen-item";
       item.innerHTML = `
         <div class="screen-thumbnail" style="background-color: #f0f0f0; display: flex; align-items: center; justify-content: center;">
           <div style="position: absolute; font-size: 14px; color: #666;">${source.displaySize}</div>
@@ -435,34 +449,42 @@ function showScreenSelectionDialog(sources) {
         <div class="screen-name">${source.name}</div>
       `;
 
-      item.addEventListener('click', () => {
+      item.addEventListener("click", () => {
         // 更新选中状态
-        document.querySelectorAll('.screen-item').forEach(el => {
-          el.classList.remove('selected');
+        document.querySelectorAll(".screen-item").forEach((el) => {
+          el.classList.remove("selected");
         });
-        item.classList.add('selected');
+        item.classList.add("selected");
         selectedSource = source;
-        confirmBtn.disabled = false;
+        confirmBtn.style.display = "inline-block"; // 显示确认按钮
       });
 
       screenList.appendChild(item);
     });
 
     // 确认按钮点击处理
-    confirmBtn.addEventListener('click', () => {
-      modal.style.display = 'none';
-      resolve(selectedSource);
-    }, { once: true });
+    confirmBtn.addEventListener(
+      "click",
+      () => {
+        modal.style.display = "none";
+        resolve(selectedSource);
+      },
+      { once: true }
+    );
 
     // 取消按钮点击处理
-    cancelBtn.addEventListener('click', () => {
-      modal.style.display = 'none';
-      resolve(null);
-    }, { once: true });
+    cancelBtn.addEventListener(
+      "click",
+      () => {
+        modal.style.display = "none";
+        resolve(null);
+      },
+      { once: true }
+    );
 
     // 显示对话框
-    modal.style.display = 'flex';
-    confirmBtn.disabled = true;
+    modal.style.display = "flex";
+    confirmBtn.style.display = "none"; // 初始隐藏确认按钮，直到选择了屏幕
   });
 }
 
