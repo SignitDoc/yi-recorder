@@ -20,8 +20,8 @@ process.env.PYTHONIOENCODING = "UTF-8";
 
 // 创建一个帮助函数来确保正确的编码输出
 const logWithEncoding = (message) => {
-  if (typeof message === 'string') {
-    console.log(Buffer.from(message, 'utf8').toString());
+  if (typeof message === "string") {
+    console.log(Buffer.from(message, "utf8").toString());
   } else {
     console.log(message);
   }
@@ -29,8 +29,8 @@ const logWithEncoding = (message) => {
 
 // 重写错误日志函数
 const errorWithEncoding = (message, error) => {
-  if (typeof message === 'string') {
-    console.error(Buffer.from(message, 'utf8').toString(), error);
+  if (typeof message === "string") {
+    console.error(Buffer.from(message, "utf8").toString(), error);
   } else {
     console.error(message, error);
   }
@@ -144,22 +144,26 @@ ipcMain.handle("get-sources", async () => {
 });
 
 // 处理保存录制文件
-ipcMain.on("save-recording", async (event, buffer) => {
+ipcMain.on("save-recording", async (event, buffer, format = "mp4") => {
+  // 根据选择的格式设置对话框选项
+  const isWebm = format === "webm";
+  const fileExtension = isWebm ? "webm" : "mp4";
+  const fileTypeLabel = isWebm ? "WebM 文件" : "MP4 文件";
+
   const { filePath } = await dialog.showSaveDialog({
     buttonLabel: "保存视频",
-    defaultPath: `recording-${Date.now()}.mp4`,
-    filters: [{ name: "MP4 文件", extensions: ["mp4"] }],
+    defaultPath: `recording-${Date.now()}.${fileExtension}`,
+    filters: [{ name: fileTypeLabel, extensions: [fileExtension] }],
   });
 
   if (filePath) {
     // 创建临时WebM文件
     const tempDir = os.tmpdir();
     const tempWebmPath = path.join(tempDir, `temp-${Date.now()}.webm`);
-    const tempMp4Path = path.join(tempDir, `temp-${Date.now()}.mp4`);
 
     logWithEncoding("临时WebM路径: " + tempWebmPath);
-    logWithEncoding("临时MP4路径: " + tempMp4Path);
     logWithEncoding("最终目标路径: " + filePath);
+    logWithEncoding("选择的格式: " + format);
 
     // 先保存WebM文件
     fs.writeFile(tempWebmPath, buffer, async (err) => {
@@ -173,6 +177,23 @@ ipcMain.on("save-recording", async (event, buffer) => {
       }
 
       try {
+        // 如果选择WebM格式，直接重命名文件
+        if (isWebm) {
+          fs.renameSync(tempWebmPath, filePath);
+
+          event.reply("save-recording-response", {
+            success: true,
+            message: "保存成功",
+            filePath,
+          });
+          return;
+        }
+
+        // 如果选择MP4格式，需要转换
+        // 创建临时MP4文件路径
+        const tempMp4Path = path.join(tempDir, `temp-${Date.now()}.mp4`);
+        logWithEncoding("临时MP4路径: " + tempMp4Path);
+
         // 获取并验证FFmpeg路径
         const ffmpegPath = getFfmpegPath();
         logWithEncoding("使用的FFmpeg路径: " + ffmpegPath);
@@ -187,15 +208,26 @@ ipcMain.on("save-recording", async (event, buffer) => {
           logWithEncoding("执行的FFmpeg命令: " + command);
 
           // 设置子进程的编码为UTF-8
-          exec(command, { encoding: 'utf8', env: { ...process.env, PYTHONIOENCODING: 'UTF-8', LANG: 'zh_CN.UTF-8' } }, (error, stdout, stderr) => {
-            if (error) {
-              errorWithEncoding("FFmpeg错误:", error);
-              errorWithEncoding("FFmpeg输出:", stderr);
-              reject(new Error(`FFmpeg转换失败: ${error.message}`));
-              return;
+          exec(
+            command,
+            {
+              encoding: "utf8",
+              env: {
+                ...process.env,
+                PYTHONIOENCODING: "UTF-8",
+                LANG: "zh_CN.UTF-8",
+              },
+            },
+            (error, stdout, stderr) => {
+              if (error) {
+                errorWithEncoding("FFmpeg错误:", error);
+                errorWithEncoding("FFmpeg输出:", stderr);
+                reject(new Error(`FFmpeg转换失败: ${error.message}`));
+                return;
+              }
+              resolve();
             }
-            resolve();
-          });
+          );
         });
 
         // 将转换后的MP4文件移动到目标位置
@@ -210,21 +242,24 @@ ipcMain.on("save-recording", async (event, buffer) => {
           filePath,
         });
       } catch (error) {
-        errorWithEncoding("转换视频格式失败:", error);
+        errorWithEncoding("处理视频文件失败:", error);
         // 清理临时文件
         try {
           if (fs.existsSync(tempWebmPath)) {
             fs.unlinkSync(tempWebmPath);
           }
-          if (fs.existsSync(tempMp4Path)) {
-            fs.unlinkSync(tempMp4Path);
+          if (
+            format === "mp4" &&
+            fs.existsSync(path.join(tempDir, `temp-${Date.now()}.mp4`))
+          ) {
+            fs.unlinkSync(path.join(tempDir, `temp-${Date.now()}.mp4`));
           }
         } catch (cleanupError) {
           errorWithEncoding("清理临时文件失败:", cleanupError);
         }
 
         // 提供更详细的错误信息
-        let errorMessage = "转换视频格式失败";
+        let errorMessage = "处理视频文件失败";
         if (error.message) {
           errorMessage += ": " + error.message;
         }

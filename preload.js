@@ -6,8 +6,8 @@ process.env.LANG = "zh_CN.UTF-8";
 
 // 使用Buffer来确保正确的编码输出
 const logWithEncoding = (message) => {
-  if (typeof message === 'string') {
-    console.log(Buffer.from(message, 'utf8').toString());
+  if (typeof message === "string") {
+    console.log(Buffer.from(message, "utf8").toString());
   } else {
     console.log(message);
   }
@@ -15,7 +15,9 @@ const logWithEncoding = (message) => {
 
 logWithEncoding("简化版preload脚本已加载");
 logWithEncoding("electron对象: " + typeof electron);
-logWithEncoding("electron中的desktopCapturer: " + typeof electron.desktopCapturer);
+logWithEncoding(
+  "electron中的desktopCapturer: " + typeof electron.desktopCapturer
+);
 
 contextBridge.exposeInMainWorld("electronAPI", {
   captureScreen: async () => {
@@ -32,7 +34,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }
   },
 
-  saveFile: (buffer) => ipcRenderer.send("save-recording", buffer),
+  saveFile: (buffer, format) =>
+    ipcRenderer.send("save-recording", buffer, format),
 
   onSaveComplete: (callback) => {
     ipcRenderer.on("save-recording-response", (_event, response) =>

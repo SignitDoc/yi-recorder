@@ -350,6 +350,69 @@ function saveRecording() {
     return;
   }
 
+  // 显示格式选择弹窗
+  showFormatSelectionDialog();
+}
+
+// 显示格式选择对话框
+function showFormatSelectionDialog() {
+  // 创建弹窗元素
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.style.display = "flex";
+  modal.style.zIndex = "3000";
+
+  const modalContent = document.createElement("div");
+  modalContent.className = "modal-content";
+  modalContent.style.maxWidth = "400px";
+
+  const title = document.createElement("div");
+  title.className = "modal-title";
+  title.textContent = "请选择保存格式";
+  title.style.marginBottom = "20px";
+
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.style.display = "flex";
+  buttonsContainer.style.justifyContent = "space-around";
+  buttonsContainer.style.marginTop = "20px";
+
+  // WebM按钮
+  const webmButton = document.createElement("button");
+  webmButton.textContent = "保存为WebM格式";
+  webmButton.style.backgroundColor = "#3498db";
+  webmButton.style.marginRight = "10px";
+
+  // MP4按钮
+  const mp4Button = document.createElement("button");
+  mp4Button.textContent = "保存为MP4格式";
+  mp4Button.style.backgroundColor = "#2ecc71";
+
+  // 添加按钮点击事件
+  webmButton.addEventListener("click", () => {
+    modal.style.display = "none";
+    document.body.removeChild(modal);
+    processAndSaveRecording("webm");
+  });
+
+  mp4Button.addEventListener("click", () => {
+    modal.style.display = "none";
+    document.body.removeChild(modal);
+    processAndSaveRecording("mp4");
+  });
+
+  // 组装弹窗
+  buttonsContainer.appendChild(webmButton);
+  buttonsContainer.appendChild(mp4Button);
+  modalContent.appendChild(title);
+  modalContent.appendChild(buttonsContainer);
+  modal.appendChild(modalContent);
+
+  // 添加到页面
+  document.body.appendChild(modal);
+}
+
+// 处理并保存录制内容
+function processAndSaveRecording(format) {
   statusElement.textContent = "正在处理录制内容，请稍候...";
   loadingOverlay.style.display = "flex";
 
@@ -364,9 +427,9 @@ function saveRecording() {
   reader.onload = () => {
     const buffer = new Uint8Array(reader.result);
 
-    // 通过IPC发送到主进程保存
-    window.electronAPI.saveFile(buffer);
-    statusElement.textContent = "正在保存...";
+    // 通过IPC发送到主进程保存，并指定格式
+    window.electronAPI.saveFile(buffer, format);
+    statusElement.textContent = `正在保存为${format.toUpperCase()}格式...`;
   };
 
   reader.readAsArrayBuffer(blob);
